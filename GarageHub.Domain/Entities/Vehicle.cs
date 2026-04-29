@@ -1,4 +1,4 @@
-﻿namespace GarageHub.Domain.Entities;
+namespace GarageHub.Domain.Entities;
 
 public class Vehicle
 {

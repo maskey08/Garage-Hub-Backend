@@ -1,16 +1,14 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Text;
 using GarageHub.Application.Interfaces;
 using GarageHub.Domain.Entities;
 using GarageHub.Infrastructure.Data;
 using Microsoft.EntityFrameworkCore;
 
-namespace GarageHub.Infrastructure.Services;
+namespace GarageHub.Application.Services;
 
 public class CustomerService : ICustomerService
 {
     private readonly AppDbContext _db;
+
     public CustomerService(AppDbContext db) => _db = db;
 
     public async Task<User?> GetProfileAsync(int userId)
@@ -18,21 +16,18 @@ public class CustomerService : ICustomerService
 
     public async Task<User> UpdateProfileAsync(int userId, string firstName, string lastName, string phone)
     {
-        var user = await _db.Users.FindAsync(userId)
-            ?? throw new Exception("User not found.");
-        user.FirstName = firstName;
-        user.LastName = lastName;
+        var user = await _db.Users.FirstOrDefaultAsync(u => u.UserId == userId);
+        if (user == null)
+            throw new KeyNotFoundException("User not found");
+
         user.Phone = phone;
+        _db.Users.Update(user);
         await _db.SaveChangesAsync();
         return user;
     }
 
     public async Task<IEnumerable<SalesInvoice>> GetPurchaseHistoryAsync(int customerId)
-        => await _db.SalesInvoices
-            .Include(s => s.Items)
-            .Where(s => s.CustomerId == customerId)
-            .OrderByDescending(s => s.SaleDate)
-            .ToListAsync();
+        => await _db.SalesInvoices.Where(s => s.CustomerId == customerId).ToListAsync();
 
     public async Task<IEnumerable<Vehicle>> GetVehiclesAsync(int customerId)
         => await _db.Vehicles.Where(v => v.UserId == customerId).ToListAsync();

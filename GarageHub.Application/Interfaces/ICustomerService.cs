@@ -1,6 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Text;
+using GarageHub.Application.DTOs;
 using GarageHub.Domain.Entities;
 
 namespace GarageHub.Application.Interfaces;

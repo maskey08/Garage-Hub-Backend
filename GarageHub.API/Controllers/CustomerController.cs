@@ -1,4 +1,4 @@
-﻿using GarageHub.Application.Interfaces;
+using GarageHub.Application.Interfaces;
 using GarageHub.Domain.Entities;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -12,7 +12,9 @@ namespace GarageHub.API.Controllers;
 public class CustomerController : ControllerBase
 {
     private readonly ICustomerService _customerService;
-    public CustomerController(ICustomerService customerService) => _customerService = customerService;
+    
+    public CustomerController(ICustomerService customerService) 
+        => _customerService = customerService;
 
     private int GetUserId() =>
         int.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier)!);

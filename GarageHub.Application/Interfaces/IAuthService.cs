@@ -1,6 +1,3 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Text;
 using GarageHub.Application.DTOs.Auth;
 
 namespace GarageHub.Application.Interfaces;

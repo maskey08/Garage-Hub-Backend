@@ -1,4 +1,4 @@
-﻿using GarageHub.Application.DTOs.Auth;
+using GarageHub.Application.DTOs.Auth;
 using GarageHub.Application.Interfaces;
 using GarageHub.Domain.Entities;
 using GarageHub.Infrastructure.Data;
@@ -9,28 +9,26 @@ using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
 using System.Text;
 
-namespace GarageHub.Infrastructure.Services;
+namespace GarageHub.Application.Services;
 
 public class AuthService : IAuthService
 {
-    private readonly AppDbContext _db;
-    private readonly IConfiguration _config;
+    private readonly AppDbContext _context;
+    private readonly IConfiguration _configuration;
 
-    public AuthService(AppDbContext db, IConfiguration config)
+    public AuthService(AppDbContext context, IConfiguration configuration)
     {
-        _db = db;
-        _config = config;
+        _context = context;
+        _configuration = configuration;
     }
 
     public async Task<AuthResponseDto> RegisterAsync(RegisterDto dto)
     {
-        var exists = await _db.Users.AnyAsync(u => u.Email == dto.Email);
-        if (exists) throw new Exception("Email already registered.");
+        if (await _context.Users.AnyAsync(u => u.Email == dto.Email))
+            return new AuthResponseDto { Success = false, Message = "Email already exists" };
 
         var user = new User
         {
-            FirstName = dto.FirstName,
-            LastName = dto.LastName,
             Email = dto.Email,
             Phone = dto.Phone,
             Role = dto.Role,
@@ -38,23 +36,32 @@ public class AuthService : IAuthService
             PasswordHash = BCrypt.Net.BCrypt.HashPassword(dto.Password)
         };
 
-        _db.Users.Add(user);
-        await _db.SaveChangesAsync();
-        return GenerateToken(user);
+        _context.Users.Add(user);
+        await _context.SaveChangesAsync();
+
+        return new AuthResponseDto
+        {
+            Success = true,
+            Message = "Registration successful",
+            Token = GenerateJwtToken(user)
+        };
     }
 
     public async Task<AuthResponseDto> LoginAsync(LoginDto dto)
     {
-        var user = await _db.Users.FirstOrDefaultAsync(u => u.Email == dto.Email)
-            ?? throw new Exception("Invalid credentials.");
+        var user = await _context.Users.FirstOrDefaultAsync(u => u.Email == dto.Email);
+        if (user == null || !BCrypt.Net.BCrypt.Verify(dto.Password, user.PasswordHash))
+            return new AuthResponseDto { Success = false, Message = "Invalid credentials" };
 
-        if (!BCrypt.Net.BCrypt.Verify(dto.Password, user.PasswordHash))
-            throw new Exception("Invalid credentials.");
-
-        return GenerateToken(user);
+        return new AuthResponseDto
+        {
+            Success = true,
+            Message = "Login successful",
+            Token = GenerateJwtToken(user)
+        };
     }
 
-    private AuthResponseDto GenerateToken(User user)
+    private string GenerateJwtToken(User user)
     {
         var key = new SymmetricSecurityKey(
             Encoding.UTF8.GetBytes(_config["Jwt:Key"]!));
@@ -68,18 +75,12 @@ public class AuthService : IAuthService
         };
 
         var token = new JwtSecurityToken(
-            issuer: _config["Jwt:Issuer"],
-            audience: _config["Jwt:Audience"],
+            issuer: _configuration["Jwt:Issuer"],
+            audience: _configuration["Jwt:Audience"],
             claims: claims,
-            expires: DateTime.UtcNow.AddDays(7),
-            signingCredentials: creds
-        );
+            expires: DateTime.UtcNow.AddHours(1),
+            signingCredentials: creds);
 
-        return new AuthResponseDto
-        {
-            Token = new JwtSecurityTokenHandler().WriteToken(token),
-            Role = user.Role,
-            FullName = $"{user.FirstName} {user.LastName}"
-        };
+        return new JwtSecurityTokenHandler().WriteToken(token);
     }
 }

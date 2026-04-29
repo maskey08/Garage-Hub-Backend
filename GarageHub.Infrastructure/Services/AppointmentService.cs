@@ -4,7 +4,7 @@ using GarageHub.Domain.Entities;
 using Microsoft.EntityFrameworkCore;
 using GarageHub.Infrastructure.Data;
 
-namespace GarageHub.Infrastructure.Services;
+namespace GarageHub.Application.Services;
 
 public class AppointmentService : IAppointmentService
 {
