@@ -1,12 +1,8 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Text;
-
-using GarageHub.Application.DTOs.Appointment;
+﻿using GarageHub.Application.DTOs.Appointment;
 using GarageHub.Application.Interfaces;
 using GarageHub.Domain.Entities;
-using GarageHub.Infrastructure.Data;
 using Microsoft.EntityFrameworkCore;
+using GarageHub.Infrastructure.Data;
 
 namespace GarageHub.Infrastructure.Services;
 
