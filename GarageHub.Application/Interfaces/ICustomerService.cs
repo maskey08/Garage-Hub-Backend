@@ -1,12 +1,13 @@
 using GarageHub.Application.DTOs;
+using GarageHub.Domain.Entities;
 
-namespace GarageHub.Application.Interfaces
+namespace GarageHub.Application.Interfaces;
+
+public interface ICustomerService
 {
-    public interface ICustomerService
-    {
-        Task<IEnumerable<CustomerDto>> GetAllCustomersAsync();
-        Task<CustomerDto?> GetCustomerByIdAsync(int id);
-        Task<CustomerDto?> GetCustomerWithDetailsAsync(int id);
-        Task<IEnumerable<CustomerDto>> SearchCustomersAsync(string searchTerm, string searchBy);
-    }
+    Task<User?> GetProfileAsync(int userId);
+    Task<User> UpdateProfileAsync(int userId, string firstName, string lastName, string phone);
+    Task<IEnumerable<SalesInvoice>> GetPurchaseHistoryAsync(int customerId);
+    Task<IEnumerable<Vehicle>> GetVehiclesAsync(int customerId);
+    Task<Vehicle> AddVehicleAsync(int customerId, Vehicle vehicle);
 }

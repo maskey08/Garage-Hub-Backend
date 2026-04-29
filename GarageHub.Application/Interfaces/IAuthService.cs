@@ -1,15 +1,9 @@
-using GarageHub.Application.DTOs;
+using GarageHub.Application.DTOs.Auth;
 
-namespace GarageHub.Application.Interfaces
+namespace GarageHub.Application.Interfaces;
+
+public interface IAuthService
 {
-    public interface IAuthService
-    {
-        Task<LoginResponseDto?> LoginAsync(LoginDto loginDto);
-        Task<string?> RegisterAsync(RegisterDto registerDto);
-        Task<IEnumerable<StaffDto>> GetAllStaffAsync();
-        Task<StaffDto?> GetStaffByIdAsync(int id);
-        Task<string?> UpdateStaffAsync(int id, UpdateStaffDto updateStaffDto);
-        Task<bool> DeleteStaffAsync(int id);
-        Task<string?> ChangePasswordAsync(int userId, ChangePasswordDto changePasswordDto);
-    }
+    Task<AuthResponseDto> RegisterAsync(RegisterDto dto);
+    Task<AuthResponseDto> LoginAsync(LoginDto dto);
 }

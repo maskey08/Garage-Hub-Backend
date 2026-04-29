@@ -1,168 +1,85 @@
 using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
 using System.Text;
+using Microsoft.Extensions.Configuration;
 using Microsoft.IdentityModel.Tokens;
-using GarageHub.Application.DTOs;
+using GarageHub.Application.DTOs.Auth;
 using GarageHub.Application.Interfaces;
 using GarageHub.Domain.Entities;
-using GarageHub.Domain.Enums;
-using GarageHub.Infrastructure.Repositories;
+using GarageHub.Infrastructure.Data;
+using Microsoft.EntityFrameworkCore;
 
-namespace GarageHub.Application.Services
+namespace GarageHub.Application.Services;
+
+public class AuthService : IAuthService
 {
-    public class AuthService : IAuthService
+    private readonly AppDbContext _context;
+    private readonly IConfiguration _configuration;
+
+    public AuthService(AppDbContext context, IConfiguration configuration)
     {
-        private readonly IUserRepository _userRepository;
-        private readonly IConfiguration _configuration;
+        _context = context;
+        _configuration = configuration;
+    }
 
-        public AuthService(IUserRepository userRepository, IConfiguration configuration)
+    public async Task<AuthResponseDto> RegisterAsync(RegisterDto dto)
+    {
+        if (await _context.Users.AnyAsync(u => u.Email == dto.Email))
+            return new AuthResponseDto { Success = false, Message = "Email already exists" };
+
+        var user = new User
         {
-            _userRepository = userRepository;
-            _configuration = configuration;
-        }
+            Email = dto.Email,
+            Phone = dto.Phone,
+            PasswordHash = BCrypt.Net.BCrypt.HashPassword(dto.Password),
+            Role = "customer",
+            CreatedAt = DateTime.UtcNow
+        };
 
-        public async Task<LoginResponseDto?> LoginAsync(LoginDto loginDto)
+        _context.Users.Add(user);
+        await _context.SaveChangesAsync();
+
+        return new AuthResponseDto
         {
-            var user = await _userRepository.GetByEmailAsync(loginDto.Email);
-            if (user == null || !VerifyPassword(loginDto.Password, user.PasswordHash))
-                return null;
+            Success = true,
+            Message = "Registration successful",
+            Token = GenerateJwtToken(user)
+        };
+    }
 
-            if (!user.IsActive)
-                return null;
+    public async Task<AuthResponseDto> LoginAsync(LoginDto dto)
+    {
+        var user = await _context.Users.FirstOrDefaultAsync(u => u.Email == dto.Email);
+        if (user == null || !BCrypt.Net.BCrypt.Verify(dto.Password, user.PasswordHash))
+            return new AuthResponseDto { Success = false, Message = "Invalid credentials" };
 
-            var token = GenerateJwtToken(user);
-
-            return new LoginResponseDto
-            {
-                Token = token,
-                FullName = user.FullName,
-                Email = user.Email,
-                Role = user.Role.ToString(),
-                UserId = user.Id
-            };
-        }
-
-        public async Task<string?> RegisterAsync(RegisterDto registerDto)
+        return new AuthResponseDto
         {
-            // Check if email already exists
-            if (await _userRepository.EmailExistsAsync(registerDto.Email))
-                return "Email already exists";
+            Success = true,
+            Message = "Login successful",
+            Token = GenerateJwtToken(user)
+        };
+    }
 
-            // Parse role
-            if (!Enum.TryParse<UserRole>(registerDto.Role, true, out var role))
-                role = UserRole.Staff;
+    private string GenerateJwtToken(User user)
+    {
+        var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(_configuration["Jwt:Key"]!));
+        var creds = new SigningCredentials(key, SecurityAlgorithms.HmacSha256);
 
-            var user = new User
-            {
-                FullName = registerDto.FullName,
-                Email = registerDto.Email,
-                Phone = registerDto.Phone,
-                PasswordHash = HashPassword(registerDto.Password),
-                Role = role,
-                CreatedAt = DateTime.UtcNow,
-                IsActive = true
-            };
-
-            await _userRepository.CreateAsync(user);
-            return null; // Success
-        }
-
-        public async Task<IEnumerable<StaffDto>> GetAllStaffAsync()
+        var claims = new[]
         {
-            var staff = await _userRepository.GetAllStaffAsync();
-            return staff.Select(MapToStaffDto);
-        }
+            new Claim(ClaimTypes.NameIdentifier, user.UserId.ToString()),
+            new Claim(ClaimTypes.Email, user.Email),
+            new Claim(ClaimTypes.Role, user.Role)
+        };
 
-        public async Task<StaffDto?> GetStaffByIdAsync(int id)
-        {
-            var staff = await _userRepository.GetByIdAsync(id);
-            return staff != null ? MapToStaffDto(staff) : null;
-        }
+        var token = new JwtSecurityToken(
+            issuer: _configuration["Jwt:Issuer"],
+            audience: _configuration["Jwt:Audience"],
+            claims: claims,
+            expires: DateTime.UtcNow.AddHours(1),
+            signingCredentials: creds);
 
-        public async Task<string?> UpdateStaffAsync(int id, UpdateStaffDto updateStaffDto)
-        {
-            var user = await _userRepository.GetByIdAsync(id);
-            if (user == null)
-                return "Staff not found";
-
-            user.FullName = updateStaffDto.FullName;
-            user.Phone = updateStaffDto.Phone;
-            user.IsActive = updateStaffDto.IsActive;
-
-            if (Enum.TryParse<UserRole>(updateStaffDto.Role, true, out var role))
-                user.Role = role;
-
-            await _userRepository.UpdateAsync(user);
-            return null;
-        }
-
-        public async Task<bool> DeleteStaffAsync(int id)
-        {
-            return await _userRepository.DeleteAsync(id);
-        }
-
-        public async Task<string?> ChangePasswordAsync(int userId, ChangePasswordDto changePasswordDto)
-        {
-            var user = await _userRepository.GetByIdAsync(userId);
-            if (user == null)
-                return "User not found";
-
-            if (!VerifyPassword(changePasswordDto.CurrentPassword, user.PasswordHash))
-                return "Current password is incorrect";
-
-            user.PasswordHash = HashPassword(changePasswordDto.NewPassword);
-            await _userRepository.UpdateAsync(user);
-            return null;
-        }
-
-        private string GenerateJwtToken(User user)
-        {
-            var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(
-                _configuration["Jwt:Key"] ?? "GarageHubSecretKey12345678901234567890"));
-
-            var credentials = new SigningCredentials(key, SecurityAlgorithms.HmacSha256);
-
-            var claims = new[]
-            {
-                new Claim(ClaimTypes.NameIdentifier, user.Id.ToString()),
-                new Claim(ClaimTypes.Name, user.FullName),
-                new Claim(ClaimTypes.Email, user.Email),
-                new Claim(ClaimTypes.Role, user.Role.ToString())
-            };
-
-            var token = new JwtSecurityToken(
-                issuer: _configuration["Jwt:Issuer"],
-                audience: _configuration["Jwt:Audience"],
-                claims: claims,
-                expires: DateTime.UtcNow.AddDays(7),
-                signingCredentials: credentials
-            );
-
-            return new JwtSecurityTokenHandler().WriteToken(token);
-        }
-
-        private string HashPassword(string password)
-        {
-            return BCrypt.Net.BCrypt.HashPassword(password);
-        }
-
-        private bool VerifyPassword(string password, string hash)
-        {
-            return BCrypt.Net.BCrypt.Verify(password, hash);
-        }
-
-        private StaffDto MapToStaffDto(User user)
-        {
-            return new StaffDto
-            {
-                Id = user.Id,
-                FullName = user.FullName,
-                Email = user.Email,
-                Phone = user.Phone,
-                Role = user.Role.ToString(),
-                CreatedAt = user.CreatedAt,
-                IsActive = user.IsActive
-            };
-        }
+        return new JwtSecurityTokenHandler().WriteToken(token);
     }
 }

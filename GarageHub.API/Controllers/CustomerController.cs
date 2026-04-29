@@ -1,61 +1,43 @@
-using Microsoft.AspNetCore.Mvc;
 using GarageHub.Application.Interfaces;
+using GarageHub.Domain.Entities;
+using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Mvc;
+using System.Security.Claims;
 
-namespace GarageHub.API.Controllers
+namespace GarageHub.API.Controllers;
+
+[ApiController]
+[Route("api/[controller]")]
+[Authorize(Roles = "customer")]
+public class CustomerController : ControllerBase
 {
-    [ApiController]
-    [Route("api/[controller]")]
-    public class CustomerController : ControllerBase
-    {
-        private readonly ICustomerService _customerService;
+    private readonly ICustomerService _customerService;
+    
+    public CustomerController(ICustomerService customerService) 
+        => _customerService = customerService;
 
-        public CustomerController(ICustomerService customerService)
-        {
-            _customerService = customerService;
-        }
+    private int GetUserId() =>
+        int.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier)!);
 
-        // GET: api/customer
-        [HttpGet]
-        public async Task<IActionResult> GetAllCustomers()
-        {
-            var customers = await _customerService.GetAllCustomersAsync();
-            return Ok(customers);
-        }
+    [HttpGet("profile")]
+    public async Task<IActionResult> GetProfile()
+        => Ok(await _customerService.GetProfileAsync(GetUserId()));
 
-        // GET: api/customer/{id}
-        [HttpGet("{id}")]
-        public async Task<IActionResult> GetCustomerById(int id)
-        {
-            var customer = await _customerService.GetCustomerByIdAsync(id);
-            if (customer == null)
-                return NotFound($"Customer with ID {id} not found");
+    [HttpPut("profile")]
+    public async Task<IActionResult> UpdateProfile(UpdateProfileRequest req)
+        => Ok(await _customerService.UpdateProfileAsync(GetUserId(), req.FirstName, req.LastName, req.Phone));
 
-            return Ok(customer);
-        }
+    [HttpGet("vehicles")]
+    public async Task<IActionResult> GetVehicles()
+        => Ok(await _customerService.GetVehiclesAsync(GetUserId()));
 
-        // GET: api/customer/{id}/details (Feature 8 - customer history)
-        [HttpGet("{id}/details")]
-        public async Task<IActionResult> GetCustomerWithDetails(int id)
-        {
-            var customer = await _customerService.GetCustomerWithDetailsAsync(id);
-            if (customer == null)
-                return NotFound($"Customer with ID {id} not found");
+    [HttpPost("vehicles")]
+    public async Task<IActionResult> AddVehicle(Vehicle vehicle)
+        => Ok(await _customerService.AddVehicleAsync(GetUserId(), vehicle));
 
-            return Ok(customer);
-        }
-
-        // GET: api/customer/search?searchTerm=john&searchBy=name (Feature 10)
-        [HttpGet("search")]
-        public async Task<IActionResult> SearchCustomers([FromQuery] string searchTerm, [FromQuery] string searchBy)
-        {
-            if (string.IsNullOrWhiteSpace(searchTerm))
-                return BadRequest("Search term is required");
-
-            if (string.IsNullOrWhiteSpace(searchBy))
-                return BadRequest("Search by parameter is required (name, phone, id, vehicleNumber)");
-
-            var customers = await _customerService.SearchCustomersAsync(searchTerm, searchBy);
-            return Ok(customers);
-        }
-    }
+    [HttpGet("purchase-history")]
+    public async Task<IActionResult> PurchaseHistory()
+        => Ok(await _customerService.GetPurchaseHistoryAsync(GetUserId()));
 }
+
+public record UpdateProfileRequest(string FirstName, string LastName, string Phone);

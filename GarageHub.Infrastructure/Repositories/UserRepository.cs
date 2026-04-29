@@ -1,15 +1,14 @@
 using Microsoft.EntityFrameworkCore;
 using GarageHub.Domain.Entities;
-using GarageHub.Domain.Enums;
 using GarageHub.Infrastructure.Data;
 
 namespace GarageHub.Infrastructure.Repositories
 {
     public class UserRepository : IUserRepository
     {
-        private readonly ApplicationDbContext _context;
+        private readonly AppDbContext _context;
 
-        public UserRepository(ApplicationDbContext context)
+        public UserRepository(AppDbContext context)
         {
             _context = context;
         }
@@ -27,7 +26,7 @@ namespace GarageHub.Infrastructure.Repositories
         public async Task<IEnumerable<User>> GetAllStaffAsync()
         {
             return await _context.Users
-                .Where(u => u.Role == UserRole.Staff || u.Role == UserRole.Admin)
+                .Where(u => u.Role == "staff" || u.Role == "admin")
                 .ToListAsync();
         }
 
@@ -50,7 +49,7 @@ namespace GarageHub.Infrastructure.Repositories
             var user = await GetByIdAsync(id);
             if (user == null) return false;
 
-            user.IsActive = false;
+            _context.Users.Remove(user);
             await _context.SaveChangesAsync();
             return true;
         }

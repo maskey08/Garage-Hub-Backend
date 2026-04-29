@@ -1,2 +1,6 @@
 <Solution>
+<Project Path="GarageHub.API/GarageHub.API.csproj" />
+<Project Path="GarageHub.Application/GarageHub.Application.csproj" />
+<Project Path="GarageHub.Domain/GarageHub.Domain.csproj" />
+<Project Path="GarageHub.Infrastructure/GarageHub.Infrastructure.csproj" />
 </Solution>
