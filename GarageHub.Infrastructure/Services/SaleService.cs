@@ -10,9 +10,9 @@ namespace GarageHub.Application.Services
 {
     public class SaleService : ISaleService
     {
-        private readonly ApplicationDbContext _context;
+        private readonly AppDbContext _context;
 
-        public SaleService(ApplicationDbContext context)
+        public SaleService(AppDbContext context)
         {
             _context = context;
         }

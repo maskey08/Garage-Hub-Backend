@@ -1,7 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Text;
-using GarageHub.Application.DTOs.Auth;
+﻿using GarageHub.Application.DTOs.Auth;
 using GarageHub.Application.Interfaces;
 using GarageHub.Domain.Entities;
 using GarageHub.Infrastructure.Data;
@@ -11,7 +8,6 @@ using Microsoft.IdentityModel.Tokens;
 using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
 using System.Text;
-using Org.BouncyCastle.Crypto.Generators;
 
 namespace GarageHub.Infrastructure.Services;
 
@@ -38,6 +34,7 @@ public class AuthService : IAuthService
             Email = dto.Email,
             Phone = dto.Phone,
             Role = dto.Role,
+            // ✅ BCrypt.Net-Next — correct usage
             PasswordHash = BCrypt.Net.BCrypt.HashPassword(dto.Password)
         };
 
@@ -59,7 +56,8 @@ public class AuthService : IAuthService
 
     private AuthResponseDto GenerateToken(User user)
     {
-        var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(_config["Jwt:Key"]!));
+        var key = new SymmetricSecurityKey(
+            Encoding.UTF8.GetBytes(_config["Jwt:Key"]!));
         var creds = new SigningCredentials(key, SecurityAlgorithms.HmacSha256);
 
         var claims = new[]

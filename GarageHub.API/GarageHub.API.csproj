@@ -23,7 +23,6 @@
 
   <ItemGroup>
     <ProjectReference Include="..\GarageHub.Application\GarageHub.Application.csproj" />
-    <ProjectReference Include="..\GarageHub.Domain\GarageHub.Domain.csproj" />
     <ProjectReference Include="..\GarageHub.Infrastructure\GarageHub.Infrastructure.csproj" />
   </ItemGroup>
 

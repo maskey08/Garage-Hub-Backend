@@ -15,7 +15,13 @@ public class AppDbContext : DbContext
     public DbSet<SalesInvoice> SalesInvoices => Set<SalesInvoice>();
     public DbSet<SalesInvoiceItem> SalesInvoiceItems => Set<SalesInvoiceItem>();
     public DbSet<Notification> Notifications => Set<Notification>();
+    public DbSet<Part> Parts { get; set; }
 
+    public DbSet<Sale> Sales { get; set; }
+
+    public DbSet<SaleItem> SaleItems { get; set; }
+
+    public DbSet<Invoice> Invoices { get; set; }
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         // User
