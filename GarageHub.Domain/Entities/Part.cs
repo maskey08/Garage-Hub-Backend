@@ -10,10 +10,16 @@ namespace GarageHub.Domain.Entities
 
         public string PartName { get; set; } = string.Empty;
 
+    public string PartNumber { get; set; } = string.Empty;
+
+    public string Category { get; set; } = string.Empty;
+
         public string Brand { get; set; } = string.Empty;
 
         public decimal Price { get; set; }
 
         public int StockQuantity { get; set; }
+
+    public int LowStockThreshold { get; set; }
     }
 }

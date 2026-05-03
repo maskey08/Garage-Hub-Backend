@@ -1,13 +1,12 @@
+using Microsoft.AspNetCore.Identity;
 
 namespace GarageHub.Domain.Entities;
 
-public class User
+public class User : IdentityUser<int>
 {
-    public int UserId { get; set; }
-    public string Email { get; set; } = string.Empty;
+    public string FirstName { get; set; } = string.Empty;
+    public string LastName { get; set; } = string.Empty;
     public string Phone { get; set; } = string.Empty;
-    public string PasswordHash { get; set; } = string.Empty;
-    public string Role { get; set; } = "customer";
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
 
     public ICollection<Vehicle> Vehicles { get; set; } = [];

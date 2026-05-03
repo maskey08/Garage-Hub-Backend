@@ -12,11 +12,11 @@ public class CustomerService : ICustomerService
     public CustomerService(AppDbContext db) => _db = db;
 
     public async Task<User?> GetProfileAsync(int userId)
-        => await _db.Users.FirstOrDefaultAsync(u => u.UserId == userId);
+        => await _db.Users.FirstOrDefaultAsync(u => u.Id == userId);
 
     public async Task<User> UpdateProfileAsync(int userId, string firstName, string lastName, string phone)
     {
-        var user = await _db.Users.FirstOrDefaultAsync(u => u.UserId == userId);
+        var user = await _db.Users.FirstOrDefaultAsync(u => u.Id == userId);
         if (user == null)
             throw new KeyNotFoundException("User not found");
 

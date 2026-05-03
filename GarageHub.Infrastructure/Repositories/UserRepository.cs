@@ -26,7 +26,9 @@ namespace GarageHub.Infrastructure.Repositories
         public async Task<IEnumerable<User>> GetAllStaffAsync()
         {
             return await _context.Users
-                .Where(u => u.Role == "staff" || u.Role == "admin")
+                .Where(u => _context.UserRoles
+                    .Any(ur => ur.UserId == u.Id && 
+                        (_context.Roles.Any(r => r.Id == ur.RoleId && (r.Name == "staff" || r.Name == "admin")))))
                 .ToListAsync();
         }
 

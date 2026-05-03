@@ -1,8 +1,7 @@
 using GarageHub.Application.DTOs.Auth;
 using GarageHub.Application.Interfaces;
 using GarageHub.Domain.Entities;
-using GarageHub.Infrastructure.Data;
-using Microsoft.EntityFrameworkCore;
+using Microsoft.AspNetCore.Identity;
 using Microsoft.Extensions.Configuration;
 using Microsoft.IdentityModel.Tokens;
 using System.IdentityModel.Tokens.Jwt;
@@ -13,66 +12,89 @@ namespace GarageHub.Application.Services;
 
 public class AuthService : IAuthService
 {
-    private readonly AppDbContext _context;
+    private readonly UserManager<User> _userManager;
     private readonly IConfiguration _configuration;
 
-    public AuthService(AppDbContext context, IConfiguration configuration)
+    public AuthService(UserManager<User> userManager, IConfiguration configuration)
     {
-        _context = context;
+        _userManager = userManager;
         _configuration = configuration;
     }
 
     public async Task<AuthResponseDto> RegisterAsync(RegisterDto dto)
     {
-        if (await _context.Users.AnyAsync(u => u.Email == dto.Email))
+        var existingUser = await _userManager.FindByEmailAsync(dto.Email);
+        if (existingUser != null)
             return new AuthResponseDto { Success = false, Message = "Email already exists" };
 
         var user = new User
         {
             Email = dto.Email,
+            UserName = dto.Email,
             Phone = dto.Phone,
-            Role = dto.Role,
-            // ✅ BCrypt.Net-Next — correct usage
-            PasswordHash = BCrypt.Net.BCrypt.HashPassword(dto.Password)
+            FirstName = dto.FirstName ?? string.Empty,
+            LastName = dto.LastName ?? string.Empty,
+            EmailConfirmed = true,
+            CreatedAt = DateTime.UtcNow
         };
 
-        _context.Users.Add(user);
-        await _context.SaveChangesAsync();
+        var result = await _userManager.CreateAsync(user, dto.Password);
+        if (!result.Succeeded)
+            return new AuthResponseDto { Success = false, Message = "Registration failed: " + string.Join(", ", result.Errors.Select(e => e.Description)) };
+
+        var role = !string.IsNullOrEmpty(dto.Role) ? dto.Role : "customer";
+        await _userManager.AddToRoleAsync(user, role);
 
         return new AuthResponseDto
         {
             Success = true,
             Message = "Registration successful",
-            Token = GenerateJwtToken(user)
+            Token = await GenerateJwtTokenAsync(user),
+            Role = role,
+            FullName = $"{user.FirstName} {user.LastName}".Trim()
         };
     }
 
     public async Task<AuthResponseDto> LoginAsync(LoginDto dto)
     {
-        var user = await _context.Users.FirstOrDefaultAsync(u => u.Email == dto.Email);
-        if (user == null || !BCrypt.Net.BCrypt.Verify(dto.Password, user.PasswordHash))
+        var user = await _userManager.FindByEmailAsync(dto.Email);
+        if (user == null)
             return new AuthResponseDto { Success = false, Message = "Invalid credentials" };
+
+        var isPasswordValid = await _userManager.CheckPasswordAsync(user, dto.Password);
+        if (!isPasswordValid)
+            return new AuthResponseDto { Success = false, Message = "Invalid credentials" };
+
+        var roles = await _userManager.GetRolesAsync(user);
+        var role = roles.FirstOrDefault() ?? "customer";
 
         return new AuthResponseDto
         {
             Success = true,
             Message = "Login successful",
-            Token = GenerateJwtToken(user)
+            Token = await GenerateJwtTokenAsync(user),
+            Role = role,
+            FullName = $"{user.FirstName} {user.LastName}".Trim()
         };
     }
 
-    private string GenerateJwtToken(User user)
+    private async Task<string> GenerateJwtTokenAsync(User user)
     {
         var key = new SymmetricSecurityKey(
             Encoding.UTF8.GetBytes(_configuration["Jwt:Key"]!));
         var creds = new SigningCredentials(key, SecurityAlgorithms.HmacSha256);
 
-        var claims = new[]
+        var roles = await _userManager.GetRolesAsync(user);
+        var claims = new List<Claim>
         {
-            new Claim(ClaimTypes.NameIdentifier, user.UserId.ToString()),
-            new Claim(ClaimTypes.Email, user.Email),
-            new Claim(ClaimTypes.Role, user.Role)
+            new Claim(ClaimTypes.NameIdentifier, user.Id.ToString()),
+            new Claim(ClaimTypes.Email, user.Email ?? string.Empty),
         };
+
+        foreach (var role in roles)
+        {
+            claims.Add(new Claim(ClaimTypes.Role, role));
+        }
 
         var token = new JwtSecurityToken(
             issuer: _configuration["Jwt:Issuer"],

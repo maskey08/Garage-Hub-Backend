@@ -14,14 +14,32 @@ public class AuthController : ControllerBase
     [HttpPost("register")]
     public async Task<IActionResult> Register(RegisterDto dto)
     {
-        try { return Ok(await _auth.RegisterAsync(dto)); }
-        catch (Exception ex) { return BadRequest(new { ex.Message }); }
+        try
+        {
+            var result = await _auth.RegisterAsync(dto);
+            if (!result.Success)
+                return BadRequest(new { message = result.Message });
+            return Ok(result);
+        }
+        catch (Exception ex)
+        {
+            return BadRequest(new { message = ex.Message });
+        }
     }
 
     [HttpPost("login")]
     public async Task<IActionResult> Login(LoginDto dto)
     {
-        try { return Ok(await _auth.LoginAsync(dto)); }
-        catch (Exception ex) { return Unauthorized(new { ex.Message }); }
+        try
+        {
+            var result = await _auth.LoginAsync(dto);
+            if (!result.Success)
+                return Unauthorized(new { message = result.Message });
+            return Ok(result);
+        }
+        catch (Exception ex)
+        {
+            return Unauthorized(new { message = ex.Message });
+        }
     }
 }

@@ -1,9 +1,11 @@
 ﻿using GarageHub.Domain.Entities;
+using Microsoft.AspNetCore.Identity;
+using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore;
 
 namespace GarageHub.Infrastructure.Data;
 
-public class AppDbContext : DbContext
+public class AppDbContext : IdentityDbContext<User, IdentityRole<int>, int>
 {
     public AppDbContext(DbContextOptions<AppDbContext> options) : base(options) { }
 
@@ -24,11 +26,7 @@ public class AppDbContext : DbContext
     public DbSet<Invoice> Invoices { get; set; }
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
-        // User
-        modelBuilder.Entity<User>(e => {
-            e.HasKey(u => u.UserId);
-            e.Property(u => u.Role).HasDefaultValue("customer");
-        });
+        base.OnModelCreating(modelBuilder);
 
         // Vehicle → User
         modelBuilder.Entity<Vehicle>(e => {
@@ -90,6 +88,10 @@ public class AppDbContext : DbContext
              .WithMany(s => s.Items)
              .HasForeignKey(i => i.SaleId)
              .OnDelete(DeleteBehavior.Cascade);
+            e.HasOne(i => i.Part)
+             .WithMany()
+             .HasForeignKey(i => i.PartId)
+             .OnDelete(DeleteBehavior.Restrict);
         });
 
         // Notification → User
@@ -99,6 +101,54 @@ public class AppDbContext : DbContext
              .WithMany(u => u.Notifications)
              .HasForeignKey(n => n.UserId)
              .OnDelete(DeleteBehavior.Cascade);
+        });
+
+        // Part
+        modelBuilder.Entity<Part>(e => {
+            e.HasKey(p => p.Id);
+            e.Property(p => p.PartName).IsRequired();
+            e.Property(p => p.PartNumber).IsRequired();
+            e.Property(p => p.Category).IsRequired();
+            e.Property(p => p.Brand).IsRequired();
+            e.Property(p => p.Price).HasPrecision(10, 2);
+            e.Property(p => p.LowStockThreshold).HasDefaultValue(0);
+        });
+
+        // Sale → Customer (User)
+        modelBuilder.Entity<Sale>(e => {
+            e.HasKey(s => s.Id);
+            e.HasOne<User>()
+             .WithMany()
+             .HasForeignKey(s => s.CustomerId)
+             .OnDelete(DeleteBehavior.Restrict);
+            e.Property(s => s.SubTotal).HasPrecision(10, 2);
+            e.Property(s => s.TaxAmount).HasPrecision(10, 2);
+            e.Property(s => s.GrandTotal).HasPrecision(10, 2);
+        });
+
+        // SaleItem → Sale, Part
+        modelBuilder.Entity<SaleItem>(e => {
+            e.HasKey(si => si.Id);
+            e.HasOne(si => si.Sale)
+             .WithMany(s => s.SaleItems)
+             .HasForeignKey(si => si.SaleId)
+             .OnDelete(DeleteBehavior.Cascade);
+            e.HasOne<Part>()
+             .WithMany()
+             .HasForeignKey(si => si.PartId)
+             .OnDelete(DeleteBehavior.Restrict);
+            e.Property(si => si.UnitPrice).HasPrecision(10, 2);
+            e.Property(si => si.TotalPrice).HasPrecision(10, 2);
+        });
+
+        // Invoice → Sale
+        modelBuilder.Entity<Invoice>(e => {
+            e.HasKey(i => i.Id);
+            e.HasOne(i => i.Sale)
+             .WithMany()
+             .HasForeignKey(i => i.SaleId)
+             .OnDelete(DeleteBehavior.Cascade);
+            e.Property(i => i.InvoiceNumber).IsRequired();
         });
     }
 }

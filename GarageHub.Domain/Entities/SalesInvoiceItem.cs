@@ -8,5 +8,7 @@ public class SalesInvoiceItem
     public int Quantity { get; set; }
     public float UnitPrice { get; set; }
 
+    public Part Part { get; set; } = null!;
+
     public SalesInvoice SalesInvoice { get; set; } = null!;
 }
