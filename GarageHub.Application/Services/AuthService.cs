@@ -17,8 +17,8 @@ public class AuthService : IAuthService
 
     public AuthService(UserManager<User> userManager, IConfiguration configuration)
     {
-        _userManager = userManager;
         _configuration = configuration;
+        _userManager = userManager;
     }
 
     public async Task<AuthResponseDto> RegisterAsync(RegisterDto dto)
@@ -49,7 +49,7 @@ public class AuthService : IAuthService
         {
             Success = true,
             Message = "Registration successful",
-            Token = await GenerateJwtTokenAsync(user),
+            Token = GenerateJwtToken(user, role),
             Role = role,
             FullName = $"{user.FirstName} {user.LastName}".Trim()
         };
@@ -72,36 +72,33 @@ public class AuthService : IAuthService
         {
             Success = true,
             Message = "Login successful",
-            Token = await GenerateJwtTokenAsync(user),
+            Token = GenerateJwtToken(user, role),
             Role = role,
             FullName = $"{user.FirstName} {user.LastName}".Trim()
         };
     }
 
-    private async Task<string> GenerateJwtTokenAsync(User user)
+    private string GenerateJwtToken(User user, string role)
     {
-        var key = new SymmetricSecurityKey(
-            Encoding.UTF8.GetBytes(_configuration["Jwt:Key"]!));
+        var jwtKey = _configuration["Jwt:Key"]!;
+        var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwtKey));
         var creds = new SigningCredentials(key, SecurityAlgorithms.HmacSha256);
 
-        var roles = await _userManager.GetRolesAsync(user);
         var claims = new List<Claim>
-        {
-            new Claim(ClaimTypes.NameIdentifier, user.Id.ToString()),
-            new Claim(ClaimTypes.Email, user.Email ?? string.Empty),
-        };
-
-        foreach (var role in roles)
-        {
-            claims.Add(new Claim(ClaimTypes.Role, role));
-        }
+    {
+        new Claim(ClaimTypes.NameIdentifier, user.Id.ToString()),
+        new Claim(ClaimTypes.Email, user.Email!),
+        //new Claim("role", role),          // ✅ plain "role" key
+        new Claim(ClaimTypes.Role, role), // ✅ also add standard one
+    };
 
         var token = new JwtSecurityToken(
             issuer: _configuration["Jwt:Issuer"],
             audience: _configuration["Jwt:Audience"],
             claims: claims,
-            expires: DateTime.UtcNow.AddHours(1),
-            signingCredentials: creds);
+            expires: DateTime.UtcNow.AddDays(7),
+            signingCredentials: creds
+        );
 
         return new JwtSecurityTokenHandler().WriteToken(token);
     }

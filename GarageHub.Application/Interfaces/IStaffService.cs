@@ -4,8 +4,10 @@ namespace GarageHub.Application.Interfaces;
 
 public interface IStaffService
 {
-    Task<List<StaffDto>> GetAllStaffAsync();
-    Task<StaffDto> GetStaffByIdAsync(int id);
+    Task<IEnumerable<StaffDto>> GetAllStaffAsync();
+    Task<StaffDto> AddStaffAsync(AddStaffDto dto);
+    Task<StaffDto> UpdateStaffAsync(int id, UpdateStaffDto dto);
+    Task DeleteStaffAsync(int id);
     Task<bool> CreateStaffAsync(int userId);
     Task<bool> RemoveStaffAsync(int userId);
 }

@@ -15,44 +15,66 @@ public class PartService : IPartService
         _dbContext = dbContext;
     }
 
-    public async Task<List<PartDto>> GetPartsAsync(string? search, string? category)
-    {
-        var query = _dbContext.Parts.AsQueryable();
+    //public async Task<List<PartDto>> GetPartsAsync(string? search, string? category)
+    //{
+    //    var query = _dbContext.Parts.AsQueryable();
 
-        if (!string.IsNullOrWhiteSpace(search))
-        {
-            var lowered = search.Trim().ToLower();
-            query = query.Where(p => p.PartName.ToLower().Contains(lowered)
-                                     || p.PartNumber.ToLower().Contains(lowered)
-                                     || p.Brand.ToLower().Contains(lowered));
-        }
+    //    if (!string.IsNullOrWhiteSpace(search))
+    //    {
+    //        var lowered = search.Trim().ToLower();
+    //        query = query.Where(p => p.PartName.ToLower().Contains(lowered)
+    //                                 || p.PartNumber.ToLower().Contains(lowered)
+    //                                 || p.Brand.ToLower().Contains(lowered));
+    //    }
 
-        if (!string.IsNullOrWhiteSpace(category))
-        {
-            query = query.Where(p => p.Category == category);
-        }
+    //    if (!string.IsNullOrWhiteSpace(category))
+    //    {
+    //        query = query.Where(p => p.Category == category);
+    //    }
 
-        var parts = await query.OrderBy(p => p.PartName).ToListAsync();
+    //    var parts = await query.OrderBy(p => p.PartName).ToListAsync();
 
-        return parts.Select(MapToDto).ToList();
-    }
+    //    return parts.Select(MapToDto).ToList();
+    //}
 
+ 
     public async Task<List<LowStockPartDto>> GetLowStockPartsAsync()
     {
         return await _dbContext.Parts
-            .Where(p => p.StockQuantity <= p.LowStockThreshold)
+            .Where(p => p.StockQuantity <= 10)
             .OrderBy(p => p.StockQuantity)
             .Select(p => new LowStockPartDto
             {
                 PartId = p.Id,
                 PartName = p.PartName,
-                Sku = p.PartNumber,
+                Sku = string.IsNullOrEmpty(p.PartName) ? $"SKU-{p.Id}" : p.PartName,
                 CurrentStock = p.StockQuantity,
-                MinThreshold = p.LowStockThreshold
             })
             .ToListAsync();
     }
 
+    public async Task<List<PartDto>> GetPartsAsync(string? search, string? category)
+    {
+        var query = _dbContext.Parts.AsQueryable();
+
+        if (!string.IsNullOrEmpty(search))
+            query = query.Where(p => p.PartName.Contains(search) || p.Brand.Contains(search));
+
+        if (!string.IsNullOrEmpty(category))
+            query = query.Where(p => p.Category == category);
+
+        return await query.Select(p => new PartDto
+        {
+            Id = p.Id,
+            Name = p.PartName,
+            Sku = string.IsNullOrEmpty(p.PartNumber) ? $"SKU-{p.Id}" : p.PartNumber,
+            Brand = p.Brand,
+            Price = p.Price,
+            Quantity = p.StockQuantity,
+            LowStockThreshold = p.LowStockThreshold,
+            Category = p.Category
+        }).ToListAsync();
+    }
     public async Task<PartDto> AddPartAsync(CreatePartDto dto)
     {
         var part = new Part
