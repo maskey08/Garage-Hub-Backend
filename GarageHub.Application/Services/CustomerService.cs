@@ -1,42 +1,66 @@
+using GarageHub.Application.DTOs;
 using GarageHub.Application.Interfaces;
 using GarageHub.Domain.Entities;
-using GarageHub.Infrastructure.Data;
-using Microsoft.EntityFrameworkCore;
+using GarageHub.Infrastructure.Repositories;
 
 namespace GarageHub.Application.Services;
 
 public class CustomerService : ICustomerService
 {
-    private readonly AppDbContext _db;
+    private readonly IUserRepository _userRepository;
 
-    public CustomerService(AppDbContext db) => _db = db;
-
-    public async Task<User?> GetProfileAsync(int userId)
-        => await _db.Users.FirstOrDefaultAsync(u => u.UserId == userId);
-
-    public async Task<User> UpdateProfileAsync(int userId, string firstName, string lastName, string phone)
+    public CustomerService(IUserRepository userRepository)
     {
-        var user = await _db.Users.FirstOrDefaultAsync(u => u.UserId == userId);
-        if (user == null)
-            throw new KeyNotFoundException("User not found");
-
-        user.Phone = phone;
-        _db.Users.Update(user);
-        await _db.SaveChangesAsync();
-        return user;
+        _userRepository = userRepository;
     }
 
-    public async Task<IEnumerable<SalesInvoice>> GetPurchaseHistoryAsync(int customerId)
-        => await _db.SalesInvoices.Where(s => s.CustomerId == customerId).ToListAsync();
-
-    public async Task<IEnumerable<Vehicle>> GetVehiclesAsync(int customerId)
-        => await _db.Vehicles.Where(v => v.UserId == customerId).ToListAsync();
-
-    public async Task<Vehicle> AddVehicleAsync(int customerId, Vehicle vehicle)
+    // Feature 10: Staff search customers (users with role = customer)
+    public async Task<IEnumerable<CustomerDto>> SearchCustomersAsync(string searchTerm, string searchBy)
     {
-        vehicle.UserId = customerId;
-        _db.Vehicles.Add(vehicle);
-        await _db.SaveChangesAsync();
-        return vehicle;
+        var allUsers = await _userRepository.GetAllAsync();
+        var customers = allUsers.Where(u => u.Role.ToLower() == "customer");
+        
+        switch (searchBy.ToLower())
+        {
+            case "name":
+                customers = customers.Where(c => c.FullName.Contains(searchTerm));
+                break;
+            case "phone":
+                customers = customers.Where(c => c.Phone.Contains(searchTerm));
+                break;
+            case "id":
+                if (int.TryParse(searchTerm, out int id))
+                    customers = customers.Where(c => c.UserId == id);
+                break;
+            default:
+                return new List<CustomerDto>();
+        }
+        
+        return customers.Select(MapToDto);
+    }
+
+    // Feature 8: Staff view customer details with history
+    public async Task<CustomerDto?> GetCustomerWithDetailsAsync(int id)
+    {
+        var user = await _userRepository.GetByIdAsync(id);
+        if (user == null || user.Role.ToLower() != "customer")
+            return null;
+        
+        return MapToDto(user);
+    }
+
+    private static CustomerDto MapToDto(User user)
+    {
+        return new CustomerDto
+        {
+            Id = user.UserId,
+            FullName = user.FullName,
+            Phone = user.Phone,
+            Email = user.Email,
+            RegisteredDate = user.CreatedAt,
+            CreditBalance = 0,
+            Vehicles = new List<VehicleDto>(),
+            Purchases = new List<PurchaseSummaryDto>()
+        };
     }
 }

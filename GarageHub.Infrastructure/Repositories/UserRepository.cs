@@ -23,6 +23,11 @@ namespace GarageHub.Infrastructure.Repositories
             return await _context.Users.FirstOrDefaultAsync(u => u.Email == email);
         }
 
+        public async Task<IEnumerable<User>> GetAllAsync()
+        {
+            return await _context.Users.ToListAsync();
+        }
+
         public async Task<IEnumerable<User>> GetAllStaffAsync()
         {
             return await _context.Users

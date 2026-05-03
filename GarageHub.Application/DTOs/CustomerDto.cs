@@ -12,7 +12,7 @@ namespace GarageHub.Application.DTOs
         public List<VehicleDto> Vehicles { get; set; } = new();
         public List<PurchaseSummaryDto> Purchases { get; set; } = new();
     }
-
+    
     public class VehicleDto
     {
         public int Id { get; set; }
@@ -22,18 +22,12 @@ namespace GarageHub.Application.DTOs
         public int Year { get; set; }
         public string Color { get; set; } = string.Empty;
     }
-
+    
     public class PurchaseSummaryDto
     {
         public int Id { get; set; }
         public DateTime PurchaseDate { get; set; }
         public decimal TotalAmount { get; set; }
         public bool IsPaid { get; set; }
-    }
-
-    public class CustomerSearchRequest
-    {
-        public string SearchTerm { get; set; } = string.Empty;
-        public string SearchBy { get; set; } = string.Empty;
     }
 }

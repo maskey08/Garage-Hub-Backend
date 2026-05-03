@@ -1,43 +1,44 @@
-using GarageHub.Application.Interfaces;
-using GarageHub.Domain.Entities;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using System.Security.Claims;
+using GarageHub.Application.Interfaces;
 
 namespace GarageHub.API.Controllers;
 
 [ApiController]
 [Route("api/[controller]")]
-[Authorize(Roles = "customer")]
 public class CustomerController : ControllerBase
 {
     private readonly ICustomerService _customerService;
-    
-    public CustomerController(ICustomerService customerService) 
-        => _customerService = customerService;
 
-    private int GetUserId() =>
-        int.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier)!);
+    public CustomerController(ICustomerService customerService)
+    {
+        _customerService = customerService;
+    }
 
-    [HttpGet("profile")]
-    public async Task<IActionResult> GetProfile()
-        => Ok(await _customerService.GetProfileAsync(GetUserId()));
+    // Feature 10: Staff search customers by name, phone, id
+    [HttpGet("search")]
+    [Authorize(Roles = "Admin,Staff")]
+    public async Task<IActionResult> SearchCustomers([FromQuery] string searchTerm, [FromQuery] string searchBy)
+    {
+        if (string.IsNullOrWhiteSpace(searchTerm))
+            return BadRequest("Search term is required");
 
-    [HttpPut("profile")]
-    public async Task<IActionResult> UpdateProfile(UpdateProfileRequest req)
-        => Ok(await _customerService.UpdateProfileAsync(GetUserId(), req.FirstName, req.LastName, req.Phone));
+        if (string.IsNullOrWhiteSpace(searchBy))
+            return BadRequest("Search by parameter is required (name, phone, id)");
 
-    [HttpGet("vehicles")]
-    public async Task<IActionResult> GetVehicles()
-        => Ok(await _customerService.GetVehiclesAsync(GetUserId()));
+        var customers = await _customerService.SearchCustomersAsync(searchTerm, searchBy);
+        return Ok(customers);
+    }
 
-    [HttpPost("vehicles")]
-    public async Task<IActionResult> AddVehicle(Vehicle vehicle)
-        => Ok(await _customerService.AddVehicleAsync(GetUserId(), vehicle));
+    // Feature 8: Staff view customer details with history
+    [HttpGet("{id}/details")]
+    [Authorize(Roles = "Admin,Staff")]
+    public async Task<IActionResult> GetCustomerWithDetails(int id)
+    {
+        var customer = await _customerService.GetCustomerWithDetailsAsync(id);
+        if (customer == null)
+            return NotFound($"Customer with ID {id} not found");
 
-    [HttpGet("purchase-history")]
-    public async Task<IActionResult> PurchaseHistory()
-        => Ok(await _customerService.GetPurchaseHistoryAsync(GetUserId()));
+        return Ok(customer);
+    }
 }
-
-public record UpdateProfileRequest(string FirstName, string LastName, string Phone);

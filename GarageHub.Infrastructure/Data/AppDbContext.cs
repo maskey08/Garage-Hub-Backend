@@ -8,6 +8,7 @@ public class AppDbContext : DbContext
     public AppDbContext(DbContextOptions<AppDbContext> options) : base(options) { }
 
     public DbSet<User> Users => Set<User>();
+    public DbSet<Customer> Customers => Set<Customer>();
     public DbSet<Vehicle> Vehicles => Set<Vehicle>();
     public DbSet<Appointment> Appointments => Set<Appointment>();
     public DbSet<PartRequest> PartRequests => Set<PartRequest>();
@@ -16,18 +17,21 @@ public class AppDbContext : DbContext
     public DbSet<SalesInvoiceItem> SalesInvoiceItems => Set<SalesInvoiceItem>();
     public DbSet<Notification> Notifications => Set<Notification>();
     public DbSet<Part> Parts { get; set; }
-
     public DbSet<Sale> Sales { get; set; }
-
     public DbSet<SaleItem> SaleItems { get; set; }
-
     public DbSet<Invoice> Invoices { get; set; }
+    
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         // User
         modelBuilder.Entity<User>(e => {
             e.HasKey(u => u.UserId);
             e.Property(u => u.Role).HasDefaultValue("customer");
+        });
+
+        // Customer (no extra config needed beyond key)
+        modelBuilder.Entity<Customer>(e => {
+            e.HasKey(c => c.Id);
         });
 
         // Vehicle → User
