@@ -1,5 +1,6 @@
 ﻿using GarageHub.Application.DTOs.Auth;
 using GarageHub.Application.Interfaces;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
 namespace GarageHub.API.Controllers;
@@ -40,6 +41,32 @@ public class AuthController : ControllerBase
         catch (Exception ex)
         {
             return Unauthorized(new { message = ex.Message });
+        }
+    }
+
+    [HttpPost("logout")]
+    [Authorize]
+    public IActionResult Logout()
+    {
+        try
+        {
+            // Clear any server-side session/cookie data if needed
+            // JWT tokens are stateless, so the client needs to delete them from localStorage/sessionStorage
+            // But we can invalidate cookies here if they exist
+            if (Request.Cookies.ContainsKey("AuthToken"))
+            {
+                Response.Cookies.Delete("AuthToken");
+            }
+            if (Request.Cookies.ContainsKey("RefreshToken"))
+            {
+                Response.Cookies.Delete("RefreshToken");
+            }
+
+            return Ok(new { message = "Logged out successfully", success = true });
+        }
+        catch (Exception ex)
+        {
+            return BadRequest(new { message = ex.Message, success = false });
         }
     }
 }

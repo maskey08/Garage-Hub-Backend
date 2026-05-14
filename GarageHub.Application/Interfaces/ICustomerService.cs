@@ -10,4 +10,5 @@ public interface ICustomerService
     Task<IEnumerable<SalesInvoice>> GetPurchaseHistoryAsync(int customerId);
     Task<IEnumerable<Vehicle>> GetVehiclesAsync(int customerId);
     Task<Vehicle> AddVehicleAsync(int customerId, Vehicle vehicle);
+    Task<CustomerDto> CreateCustomerAsync(CreateCustomerDto dto);
 }
