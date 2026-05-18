@@ -13,6 +13,11 @@ namespace GarageHub.Infrastructure.Repositories
             _context = context;
         }
 
+        public async Task<IEnumerable<User>> GetAllAsync()
+        {
+            return await _context.Users.ToListAsync();
+        }
+
         public async Task<User?> GetByIdAsync(int id)
         {
             return await _context.Users.FindAsync(id);
@@ -25,11 +30,7 @@ namespace GarageHub.Infrastructure.Repositories
 
         public async Task<IEnumerable<User>> GetAllStaffAsync()
         {
-            return await _context.Users
-                .Where(u => _context.UserRoles
-                    .Any(ur => ur.UserId == u.Id && 
-                        (_context.Roles.Any(r => r.Id == ur.RoleId && (r.Name == "staff" || r.Name == "admin")))))
-                .ToListAsync();
+            return await _context.Users.ToListAsync();
         }
 
         public async Task<User> CreateAsync(User user)

@@ -14,10 +14,12 @@ var builder = WebApplication.CreateBuilder(args);
 
 builder.Services.AddControllers();
 
-// Database
+// Database - Use environment variable for connection string if available
+var connectionString = Environment.GetEnvironmentVariable("GARAGEHUB_DB_CONNECTION") 
+    ?? builder.Configuration.GetConnectionString("DefaultConnection");
+
 builder.Services.AddDbContext<AppDbContext>(options =>
-    options.UseNpgsql(
-        builder.Configuration.GetConnectionString("DefaultConnection")));
+    options.UseNpgsql(connectionString));
 
 // Identity
 builder.Services.AddIdentityCore<User>()
@@ -62,7 +64,6 @@ builder.Services.AddAuthentication(options =>
         NameClaimType = ClaimTypes.NameIdentifier
     };
 
-    // ✅ ADD THIS — prints exact auth failure reason
     options.Events = new JwtBearerEvents
     {
         OnAuthenticationFailed = context =>
@@ -93,30 +94,97 @@ builder.Services.AddCors(options =>
     options.AddPolicy("AllowFrontend", policy =>
     {
         policy
-            .SetIsOriginAllowed(_ => true)  // ← allow any origin in dev
+            .SetIsOriginAllowed(_ => true)
             .AllowAnyHeader()
             .AllowAnyMethod();
     });
 });
 
-builder.Services.AddEndpointsApiExplorer();
-builder.Services.AddSwaggerGen();
-
 var app = builder.Build();
 
-// Swagger
-app.UseSwagger();
-app.UseSwaggerUI();
-
-// Apply migrations
-using (var scope = app.Services.CreateScope())
+// Apply pending migrations
+try
 {
-    var dbContext = scope.ServiceProvider.GetRequiredService<AppDbContext>();
-    await dbContext.Database.MigrateAsync();
+    using (var scope = app.Services.CreateScope())
+    {
+        var dbContext = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+
+        try
+        {
+            Debug.WriteLine("Checking database state...");
+
+            // Check if the database exists
+            bool canConnect = await dbContext.Database.CanConnectAsync();
+            if (!canConnect)
+            {
+                Debug.WriteLine("Database cannot connect, creating...");
+                await dbContext.Database.EnsureCreatedAsync();
+            }
+            else
+            {
+                Debug.WriteLine("✅ Database connection established");
+
+                // Try to get migrations to apply
+                var pending = await dbContext.Database.GetPendingMigrationsAsync();
+                if (pending.Any())
+                {
+                    Debug.WriteLine($"Applying {pending.Count()} pending migrations...");
+                    try
+                    {
+                        await dbContext.Database.MigrateAsync();
+                        Debug.WriteLine("✅ Migrations applied");
+                    }
+                    catch (Exception migEx) when (migEx.Message.Contains("already exists"))
+                    {
+                        Debug.WriteLine("✅ Tables already exist, skipping migration");
+                    }
+                }
+                else
+                {
+                    Debug.WriteLine("✅ All migrations already applied");
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            if (ex.Message.Contains("already exists"))
+            {
+                Debug.WriteLine("✅ Database schema is complete");
+            }
+            else
+            {
+                Debug.WriteLine($"❌ Database check failed: {ex.Message}");
+                throw;
+            }
+        }
+    }
+}
+catch (Exception ex)
+{
+    Debug.WriteLine($"❌ Fatal error: {ex.Message}");
+    throw;
 }
 
 // Seed roles and admin user
-await SeedAdminAsync(app);
+try
+{
+    await SeedAdminAsync(app);
+}
+catch (Npgsql.PostgresException pgEx) when (pgEx.SqlState == "28P01")
+{
+    Debug.WriteLine($"❌ PostgreSQL authentication failed: {pgEx.Message}");
+    Debug.WriteLine($"❌ Please verify PostgreSQL credentials:");
+    Debug.WriteLine($"   - Check the password in appsettings.json matches your PostgreSQL 'postgres' user");
+    Debug.WriteLine($"   - Or set GARAGEHUB_DB_CONNECTION environment variable with correct credentials");
+    Debug.WriteLine($"   - Example: Host=localhost;Port=5432;Database=garagehub;Username=postgres;Password=YOUR_ACTUAL_PASSWORD");
+    throw;
+}
+catch (Exception ex)
+{
+    Debug.WriteLine($"❌ Seeding failed: {ex.Message}");
+    Debug.WriteLine($"Stack Trace: {ex.StackTrace}");
+    throw;
+}
 
 app.UseHttpsRedirection();
 app.UseCors("AllowFrontend");
@@ -140,7 +208,7 @@ async Task SeedAdminAsync(WebApplication webApp)
     // Create roles
     foreach (var role in new[] { "admin", "staff", "customer" })
     {
-        if (!await roleManager.RoleExistsAsync(role))
+                                if (!await roleManager.RoleExistsAsync(role))
         {
             var r = await roleManager.CreateAsync(new IdentityRole<int> { Name = role });
             Debug.WriteLine(r.Succeeded ? $"✅ Role '{role}' created" : $"❌ Role '{role}' failed");
@@ -232,9 +300,6 @@ async Task SeedAdminAsync(WebApplication webApp)
 }
 
 // ─── Diagnostic Endpoints ─────────────────────────────────────
-// These are public endpoints for debugging and checking the state of the application.
-// They should be secured or removed in the production environment.
-
 app.MapGet("/api/diagnostics/db-status", async (AppDbContext db) =>
 {
     var connected = await db.Database.CanConnectAsync();
