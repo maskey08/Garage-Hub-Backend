@@ -2,12 +2,12 @@
 -- PostgreSQL database dump
 --
 
-\restrict 93D0hpUc52Dwt16DXi89zwMlamY0RBk1TIlodHGgF3e7kbNzmsRL9T11reWcHpf
+\restrict 0ksh5doN4SpdSLwwDICMrCj9Fi8MR2wMLSBvFhMmFQ3jqPMMbGEr7L5rjvfGqfh
 
 -- Dumped from database version 18.1
 -- Dumped by pg_dump version 18.1
 
--- Started on 2026-05-18 13:43:14
+-- Started on 2026-05-18 14:17:24
 
 SET statement_timeout = 0;
 SET lock_timeout = 0;
@@ -20,6 +20,52 @@ SET check_function_bodies = false;
 SET xmloption = content;
 SET client_min_messages = warning;
 SET row_security = off;
+
+DROP DATABASE IF EXISTS garagehub;
+--
+-- TOC entry 5210 (class 1262 OID 74332)
+-- Name: garagehub; Type: DATABASE; Schema: -; Owner: postgres
+--
+
+CREATE DATABASE garagehub WITH TEMPLATE = template0 ENCODING = 'UTF8' LOCALE_PROVIDER = libc LOCALE = 'English_United States.1252';
+
+
+ALTER DATABASE garagehub OWNER TO postgres;
+
+\unrestrict 0ksh5doN4SpdSLwwDICMrCj9Fi8MR2wMLSBvFhMmFQ3jqPMMbGEr7L5rjvfGqfh
+\connect garagehub
+\restrict 0ksh5doN4SpdSLwwDICMrCj9Fi8MR2wMLSBvFhMmFQ3jqPMMbGEr7L5rjvfGqfh
+
+SET statement_timeout = 0;
+SET lock_timeout = 0;
+SET idle_in_transaction_session_timeout = 0;
+SET transaction_timeout = 0;
+SET client_encoding = 'UTF8';
+SET standard_conforming_strings = on;
+SELECT pg_catalog.set_config('search_path', '', false);
+SET check_function_bodies = false;
+SET xmloption = content;
+SET client_min_messages = warning;
+SET row_security = off;
+
+--
+-- TOC entry 4 (class 2615 OID 2200)
+-- Name: public; Type: SCHEMA; Schema: -; Owner: pg_database_owner
+--
+
+CREATE SCHEMA public;
+
+
+ALTER SCHEMA public OWNER TO pg_database_owner;
+
+--
+-- TOC entry 5211 (class 0 OID 0)
+-- Dependencies: 4
+-- Name: SCHEMA public; Type: COMMENT; Schema: -; Owner: pg_database_owner
+--
+
+COMMENT ON SCHEMA public IS 'standard public schema';
+
 
 SET default_tablespace = '';
 
@@ -582,9 +628,7 @@ ALTER TABLE public."__EFMigrationsHistory" OWNER TO postgres;
 -- Data for Name: Appointments; Type: TABLE DATA; Schema: public; Owner: postgres
 --
 
-COPY public."Appointments" ("AppointmentId", "CustomerId", "VehicleId", "StaffId", "ScheduledAt", "ServiceType", "Status", "Notes") FROM stdin;
-1	4	1	\N	2026-05-20 05:45:00+05:45	Oil Change	pending	
-\.
+INSERT INTO public."Appointments" VALUES (1, 4, 1, NULL, '2026-05-20 05:45:00+05:45', 'Oil Change', 'pending', '') ON CONFLICT DO NOTHING;
 
 
 --
@@ -593,8 +637,6 @@ COPY public."Appointments" ("AppointmentId", "CustomerId", "VehicleId", "StaffId
 -- Data for Name: AspNetRoleClaims; Type: TABLE DATA; Schema: public; Owner: postgres
 --
 
-COPY public."AspNetRoleClaims" ("Id", "RoleId", "ClaimType", "ClaimValue") FROM stdin;
-\.
 
 
 --
@@ -603,11 +645,9 @@ COPY public."AspNetRoleClaims" ("Id", "RoleId", "ClaimType", "ClaimValue") FROM 
 -- Data for Name: AspNetRoles; Type: TABLE DATA; Schema: public; Owner: postgres
 --
 
-COPY public."AspNetRoles" ("Id", "Name", "NormalizedName", "ConcurrencyStamp") FROM stdin;
-1	admin	ADMIN	07fbdf5c-a977-4ae2-abfd-c075a45a7cdc
-2	staff	STAFF	d5fc87a7-07dc-4b0f-806e-1431b2a638f8
-3	customer	CUSTOMER	a5bc2b3d-4c4f-41cb-8cd5-d57e664d05fe
-\.
+INSERT INTO public."AspNetRoles" VALUES (1, 'admin', 'ADMIN', '07fbdf5c-a977-4ae2-abfd-c075a45a7cdc') ON CONFLICT DO NOTHING;
+INSERT INTO public."AspNetRoles" VALUES (2, 'staff', 'STAFF', 'd5fc87a7-07dc-4b0f-806e-1431b2a638f8') ON CONFLICT DO NOTHING;
+INSERT INTO public."AspNetRoles" VALUES (3, 'customer', 'CUSTOMER', 'a5bc2b3d-4c4f-41cb-8cd5-d57e664d05fe') ON CONFLICT DO NOTHING;
 
 
 --
@@ -616,8 +656,6 @@ COPY public."AspNetRoles" ("Id", "Name", "NormalizedName", "ConcurrencyStamp") F
 -- Data for Name: AspNetUserClaims; Type: TABLE DATA; Schema: public; Owner: postgres
 --
 
-COPY public."AspNetUserClaims" ("Id", "UserId", "ClaimType", "ClaimValue") FROM stdin;
-\.
 
 
 --
@@ -626,8 +664,6 @@ COPY public."AspNetUserClaims" ("Id", "UserId", "ClaimType", "ClaimValue") FROM 
 -- Data for Name: AspNetUserLogins; Type: TABLE DATA; Schema: public; Owner: postgres
 --
 
-COPY public."AspNetUserLogins" ("LoginProvider", "ProviderKey", "ProviderDisplayName", "UserId") FROM stdin;
-\.
 
 
 --
@@ -636,12 +672,10 @@ COPY public."AspNetUserLogins" ("LoginProvider", "ProviderKey", "ProviderDisplay
 -- Data for Name: AspNetUserRoles; Type: TABLE DATA; Schema: public; Owner: postgres
 --
 
-COPY public."AspNetUserRoles" ("UserId", "RoleId") FROM stdin;
-1	1
-2	2
-3	2
-4	3
-\.
+INSERT INTO public."AspNetUserRoles" VALUES (1, 1) ON CONFLICT DO NOTHING;
+INSERT INTO public."AspNetUserRoles" VALUES (2, 2) ON CONFLICT DO NOTHING;
+INSERT INTO public."AspNetUserRoles" VALUES (3, 2) ON CONFLICT DO NOTHING;
+INSERT INTO public."AspNetUserRoles" VALUES (4, 3) ON CONFLICT DO NOTHING;
 
 
 --
@@ -650,8 +684,6 @@ COPY public."AspNetUserRoles" ("UserId", "RoleId") FROM stdin;
 -- Data for Name: AspNetUserTokens; Type: TABLE DATA; Schema: public; Owner: postgres
 --
 
-COPY public."AspNetUserTokens" ("UserId", "LoginProvider", "Name", "Value") FROM stdin;
-\.
 
 
 --
@@ -660,12 +692,10 @@ COPY public."AspNetUserTokens" ("UserId", "LoginProvider", "Name", "Value") FROM
 -- Data for Name: AspNetUsers; Type: TABLE DATA; Schema: public; Owner: postgres
 --
 
-COPY public."AspNetUsers" ("Id", "Phone", "CreatedAt", "UserName", "NormalizedUserName", "Email", "NormalizedEmail", "EmailConfirmed", "PasswordHash", "SecurityStamp", "ConcurrencyStamp", "PhoneNumber", "PhoneNumberConfirmed", "TwoFactorEnabled", "LockoutEnd", "LockoutEnabled", "AccessFailedCount", "FirstName", "LastName") FROM stdin;
-1	+1234567890	2026-05-15 10:27:55.594926+05:45	smartsikchya.noreply@gmail.com	SMARTSIKCHYA.NOREPLY@GMAIL.COM	smartsikchya.noreply@gmail.com	SMARTSIKCHYA.NOREPLY@GMAIL.COM	t	AQAAAAIAAYagAAAAENMJ0FLMUdRzticRvO3bHZpgRRUW+a24Crwnsmx1I5OV13XqxhcS0OFD95Cf4Sx+ng==	M5MRAWNWHAOCZLGPZ4UQQKHX6UV7RJZA	5bcb2a1c-32ca-4b63-8639-0960654cc69c	\N	f	f	\N	t	0	Admin	User
-2	9787875454	2026-05-15 10:36:35.781747+05:45	pragunmaskeyofficial@gmail.com	PRAGUNMASKEYOFFICIAL@GMAIL.COM	pragunmaskeyofficial@gmail.com	PRAGUNMASKEYOFFICIAL@GMAIL.COM	t	AQAAAAIAAYagAAAAEAT2uwMQPmgeZSOzqyqcvSv9/ASjsup7c9KJ3oti2Q+0+JCzGdCe2T1x+x6q/BAhmw==	H77KDCJEUZIU6PVGBC2LCK33NZT4JCSK	18c1921b-c95f-4dce-9272-8c40a2c3c72c	\N	f	f	\N	t	0	Pragun	Maskey
-3	9856874539	2026-05-15 10:38:04.264458+05:45	ram123@gmail.com	RAM123@GMAIL.COM	ram123@gmail.com	RAM123@GMAIL.COM	t	AQAAAAIAAYagAAAAEA9KNRWKug+PO0hRrM8R2Bbzxv1mhtNMU1Ggalr6hneBmqPkVs1YwEi1xHKKmQDBGw==	UPDRC347ZROZ46XJX6NXPZLPDJRLX5WH	b4235b08-aa48-4492-b14b-80e247ceced1	\N	f	f	\N	t	0	Ram	Kumar
-4	8967872487	2026-05-15 10:39:45.078942+05:45	shyam@gmail.com	SHYAM@GMAIL.COM	shyam@gmail.com	SHYAM@GMAIL.COM	t	AQAAAAIAAYagAAAAEFc1rzWrRIAFVmirfe+w6ojBVtNSoGBQqM/ZecShc4szrAVIA92tSP2hFeJTwA/Gxg==	PQDXVJYIIY6INHKWPHIWR7LZYVOPPMFS	7d41425c-1707-4024-81d2-3bd41a68b972	\N	f	f	\N	t	0	Shyam	Bhandari
-\.
+INSERT INTO public."AspNetUsers" VALUES (1, '+1234567890', '2026-05-15 10:27:55.594926+05:45', 'smartsikchya.noreply@gmail.com', 'SMARTSIKCHYA.NOREPLY@GMAIL.COM', 'smartsikchya.noreply@gmail.com', 'SMARTSIKCHYA.NOREPLY@GMAIL.COM', true, 'AQAAAAIAAYagAAAAENMJ0FLMUdRzticRvO3bHZpgRRUW+a24Crwnsmx1I5OV13XqxhcS0OFD95Cf4Sx+ng==', 'M5MRAWNWHAOCZLGPZ4UQQKHX6UV7RJZA', '5bcb2a1c-32ca-4b63-8639-0960654cc69c', NULL, false, false, NULL, true, 0, 'Admin', 'User') ON CONFLICT DO NOTHING;
+INSERT INTO public."AspNetUsers" VALUES (2, '9787875454', '2026-05-15 10:36:35.781747+05:45', 'pragunmaskeyofficial@gmail.com', 'PRAGUNMASKEYOFFICIAL@GMAIL.COM', 'pragunmaskeyofficial@gmail.com', 'PRAGUNMASKEYOFFICIAL@GMAIL.COM', true, 'AQAAAAIAAYagAAAAEAT2uwMQPmgeZSOzqyqcvSv9/ASjsup7c9KJ3oti2Q+0+JCzGdCe2T1x+x6q/BAhmw==', 'H77KDCJEUZIU6PVGBC2LCK33NZT4JCSK', '18c1921b-c95f-4dce-9272-8c40a2c3c72c', NULL, false, false, NULL, true, 0, 'Pragun', 'Maskey') ON CONFLICT DO NOTHING;
+INSERT INTO public."AspNetUsers" VALUES (3, '9856874539', '2026-05-15 10:38:04.264458+05:45', 'ram123@gmail.com', 'RAM123@GMAIL.COM', 'ram123@gmail.com', 'RAM123@GMAIL.COM', true, 'AQAAAAIAAYagAAAAEA9KNRWKug+PO0hRrM8R2Bbzxv1mhtNMU1Ggalr6hneBmqPkVs1YwEi1xHKKmQDBGw==', 'UPDRC347ZROZ46XJX6NXPZLPDJRLX5WH', 'b4235b08-aa48-4492-b14b-80e247ceced1', NULL, false, false, NULL, true, 0, 'Ram', 'Kumar') ON CONFLICT DO NOTHING;
+INSERT INTO public."AspNetUsers" VALUES (4, '8967872487', '2026-05-15 10:39:45.078942+05:45', 'shyam@gmail.com', 'SHYAM@GMAIL.COM', 'shyam@gmail.com', 'SHYAM@GMAIL.COM', true, 'AQAAAAIAAYagAAAAEFc1rzWrRIAFVmirfe+w6ojBVtNSoGBQqM/ZecShc4szrAVIA92tSP2hFeJTwA/Gxg==', 'PQDXVJYIIY6INHKWPHIWR7LZYVOPPMFS', '7d41425c-1707-4024-81d2-3bd41a68b972', NULL, false, false, NULL, true, 0, 'Shyam', 'Bhandari') ON CONFLICT DO NOTHING;
 
 
 --
@@ -674,8 +704,6 @@ COPY public."AspNetUsers" ("Id", "Phone", "CreatedAt", "UserName", "NormalizedUs
 -- Data for Name: Invoices; Type: TABLE DATA; Schema: public; Owner: postgres
 --
 
-COPY public."Invoices" ("Id", "SaleId", "InvoiceNumber", "CreatedAt", "Status") FROM stdin;
-\.
 
 
 --
@@ -684,8 +712,6 @@ COPY public."Invoices" ("Id", "SaleId", "InvoiceNumber", "CreatedAt", "Status") 
 -- Data for Name: Notifications; Type: TABLE DATA; Schema: public; Owner: postgres
 --
 
-COPY public."Notifications" ("NotificationId", "UserId", "Type", "Message", "IsRead", "SentAt") FROM stdin;
-\.
 
 
 --
@@ -694,8 +720,6 @@ COPY public."Notifications" ("NotificationId", "UserId", "Type", "Message", "IsR
 -- Data for Name: PartRequests; Type: TABLE DATA; Schema: public; Owner: postgres
 --
 
-COPY public."PartRequests" ("RequestId", "CustomerId", "PartName", "Description", "Status", "RequestedAt") FROM stdin;
-\.
 
 
 --
@@ -704,8 +728,6 @@ COPY public."PartRequests" ("RequestId", "CustomerId", "PartName", "Description"
 -- Data for Name: Parts; Type: TABLE DATA; Schema: public; Owner: postgres
 --
 
-COPY public."Parts" ("Id", "PartName", "Brand", "Price", "StockQuantity", "VendorId", "CreatedAt", "Description") FROM stdin;
-\.
 
 
 --
@@ -714,8 +736,6 @@ COPY public."Parts" ("Id", "PartName", "Brand", "Price", "StockQuantity", "Vendo
 -- Data for Name: Reviews; Type: TABLE DATA; Schema: public; Owner: postgres
 --
 
-COPY public."Reviews" ("ReviewId", "CustomerId", "AppointmentId", "Rating", "Comment", "ReviewedAt") FROM stdin;
-\.
 
 
 --
@@ -724,8 +744,6 @@ COPY public."Reviews" ("ReviewId", "CustomerId", "AppointmentId", "Rating", "Com
 -- Data for Name: SaleItems; Type: TABLE DATA; Schema: public; Owner: postgres
 --
 
-COPY public."SaleItems" ("Id", "SaleId", "PartId", "Quantity", "UnitPrice", "TotalPrice") FROM stdin;
-\.
 
 
 --
@@ -734,8 +752,6 @@ COPY public."SaleItems" ("Id", "SaleId", "PartId", "Quantity", "UnitPrice", "Tot
 -- Data for Name: Sales; Type: TABLE DATA; Schema: public; Owner: postgres
 --
 
-COPY public."Sales" ("Id", "CustomerId", "SubTotal", "TaxAmount", "GrandTotal", "SaleDate", "PaymentMethod") FROM stdin;
-\.
 
 
 --
@@ -744,8 +760,6 @@ COPY public."Sales" ("Id", "CustomerId", "SubTotal", "TaxAmount", "GrandTotal", 
 -- Data for Name: SalesInvoiceItems; Type: TABLE DATA; Schema: public; Owner: postgres
 --
 
-COPY public."SalesInvoiceItems" ("ItemId", "SaleId", "PartId", "Quantity", "UnitPrice", "TotalPrice") FROM stdin;
-\.
 
 
 --
@@ -754,8 +768,6 @@ COPY public."SalesInvoiceItems" ("ItemId", "SaleId", "PartId", "Quantity", "Unit
 -- Data for Name: SalesInvoices; Type: TABLE DATA; Schema: public; Owner: postgres
 --
 
-COPY public."SalesInvoices" ("SaleId", "CustomerId", "StaffId", "SaleDate", "Subtotal", "DiscountApplied", "TotalAmount", "PaymentStatus", "CreditUsed") FROM stdin;
-\.
 
 
 --
@@ -764,9 +776,7 @@ COPY public."SalesInvoices" ("SaleId", "CustomerId", "StaffId", "SaleDate", "Sub
 -- Data for Name: Vehicles; Type: TABLE DATA; Schema: public; Owner: postgres
 --
 
-COPY public."Vehicles" ("VehicleId", "UserId", "VehicleNumber", "Make", "Model", "Year", "Vin") FROM stdin;
-1	4	BA-2-Pa-2341	Toyota	Camry	2026	
-\.
+INSERT INTO public."Vehicles" VALUES (1, 4, 'BA-2-Pa-2341', 'Toyota', 'Camry', 2026, '') ON CONFLICT DO NOTHING;
 
 
 --
@@ -775,17 +785,15 @@ COPY public."Vehicles" ("VehicleId", "UserId", "VehicleNumber", "Make", "Model",
 -- Data for Name: __EFMigrationsHistory; Type: TABLE DATA; Schema: public; Owner: postgres
 --
 
-COPY public."__EFMigrationsHistory" ("MigrationId", "ProductVersion") FROM stdin;
-20260428200153_InitialCreate	10.0.7
-20260430084732_AddMissingEntityConfigurations	10.0.7
-20260503041929_AddFirstNameLastNameToUser	10.0.7
-20260503100553_AddMissingPartColumns	10.0.7
-20260515043823_updateSchema	10.0.7
-\.
+INSERT INTO public."__EFMigrationsHistory" VALUES ('20260428200153_InitialCreate', '10.0.7') ON CONFLICT DO NOTHING;
+INSERT INTO public."__EFMigrationsHistory" VALUES ('20260430084732_AddMissingEntityConfigurations', '10.0.7') ON CONFLICT DO NOTHING;
+INSERT INTO public."__EFMigrationsHistory" VALUES ('20260503041929_AddFirstNameLastNameToUser', '10.0.7') ON CONFLICT DO NOTHING;
+INSERT INTO public."__EFMigrationsHistory" VALUES ('20260503100553_AddMissingPartColumns', '10.0.7') ON CONFLICT DO NOTHING;
+INSERT INTO public."__EFMigrationsHistory" VALUES ('20260515043823_updateSchema', '10.0.7') ON CONFLICT DO NOTHING;
 
 
 --
--- TOC entry 5210 (class 0 OID 0)
+-- TOC entry 5212 (class 0 OID 0)
 -- Dependencies: 249
 -- Name: Appointments_AppointmentId_seq; Type: SEQUENCE SET; Schema: public; Owner: postgres
 --
@@ -794,7 +802,7 @@ SELECT pg_catalog.setval('public."Appointments_AppointmentId_seq"', 1, true);
 
 
 --
--- TOC entry 5211 (class 0 OID 0)
+-- TOC entry 5213 (class 0 OID 0)
 -- Dependencies: 232
 -- Name: AspNetRoleClaims_Id_seq; Type: SEQUENCE SET; Schema: public; Owner: postgres
 --
@@ -803,7 +811,7 @@ SELECT pg_catalog.setval('public."AspNetRoleClaims_Id_seq"', 1, false);
 
 
 --
--- TOC entry 5212 (class 0 OID 0)
+-- TOC entry 5214 (class 0 OID 0)
 -- Dependencies: 228
 -- Name: AspNetRoles_Id_seq; Type: SEQUENCE SET; Schema: public; Owner: postgres
 --
@@ -812,7 +820,7 @@ SELECT pg_catalog.setval('public."AspNetRoles_Id_seq"', 3, true);
 
 
 --
--- TOC entry 5213 (class 0 OID 0)
+-- TOC entry 5215 (class 0 OID 0)
 -- Dependencies: 234
 -- Name: AspNetUserClaims_Id_seq; Type: SEQUENCE SET; Schema: public; Owner: postgres
 --
@@ -821,7 +829,7 @@ SELECT pg_catalog.setval('public."AspNetUserClaims_Id_seq"', 1, false);
 
 
 --
--- TOC entry 5214 (class 0 OID 0)
+-- TOC entry 5216 (class 0 OID 0)
 -- Dependencies: 230
 -- Name: AspNetUsers_Id_seq; Type: SEQUENCE SET; Schema: public; Owner: postgres
 --
@@ -830,7 +838,7 @@ SELECT pg_catalog.setval('public."AspNetUsers_Id_seq"', 4, true);
 
 
 --
--- TOC entry 5215 (class 0 OID 0)
+-- TOC entry 5217 (class 0 OID 0)
 -- Dependencies: 224
 -- Name: Invoices_Id_seq; Type: SEQUENCE SET; Schema: public; Owner: postgres
 --
@@ -839,7 +847,7 @@ SELECT pg_catalog.setval('public."Invoices_Id_seq"', 1, false);
 
 
 --
--- TOC entry 5216 (class 0 OID 0)
+-- TOC entry 5218 (class 0 OID 0)
 -- Dependencies: 239
 -- Name: Notifications_NotificationId_seq; Type: SEQUENCE SET; Schema: public; Owner: postgres
 --
@@ -848,7 +856,7 @@ SELECT pg_catalog.setval('public."Notifications_NotificationId_seq"', 1, false);
 
 
 --
--- TOC entry 5217 (class 0 OID 0)
+-- TOC entry 5219 (class 0 OID 0)
 -- Dependencies: 241
 -- Name: PartRequests_RequestId_seq; Type: SEQUENCE SET; Schema: public; Owner: postgres
 --
@@ -857,7 +865,7 @@ SELECT pg_catalog.setval('public."PartRequests_RequestId_seq"', 1, false);
 
 
 --
--- TOC entry 5218 (class 0 OID 0)
+-- TOC entry 5220 (class 0 OID 0)
 -- Dependencies: 220
 -- Name: Parts_Id_seq; Type: SEQUENCE SET; Schema: public; Owner: postgres
 --
@@ -866,7 +874,7 @@ SELECT pg_catalog.setval('public."Parts_Id_seq"', 1, false);
 
 
 --
--- TOC entry 5219 (class 0 OID 0)
+-- TOC entry 5221 (class 0 OID 0)
 -- Dependencies: 251
 -- Name: Reviews_ReviewId_seq; Type: SEQUENCE SET; Schema: public; Owner: postgres
 --
@@ -875,7 +883,7 @@ SELECT pg_catalog.setval('public."Reviews_ReviewId_seq"', 1, false);
 
 
 --
--- TOC entry 5220 (class 0 OID 0)
+-- TOC entry 5222 (class 0 OID 0)
 -- Dependencies: 226
 -- Name: SaleItems_Id_seq; Type: SEQUENCE SET; Schema: public; Owner: postgres
 --
@@ -884,7 +892,7 @@ SELECT pg_catalog.setval('public."SaleItems_Id_seq"', 1, false);
 
 
 --
--- TOC entry 5221 (class 0 OID 0)
+-- TOC entry 5223 (class 0 OID 0)
 -- Dependencies: 247
 -- Name: SalesInvoiceItems_ItemId_seq; Type: SEQUENCE SET; Schema: public; Owner: postgres
 --
@@ -893,7 +901,7 @@ SELECT pg_catalog.setval('public."SalesInvoiceItems_ItemId_seq"', 1, false);
 
 
 --
--- TOC entry 5222 (class 0 OID 0)
+-- TOC entry 5224 (class 0 OID 0)
 -- Dependencies: 243
 -- Name: SalesInvoices_SaleId_seq; Type: SEQUENCE SET; Schema: public; Owner: postgres
 --
@@ -902,7 +910,7 @@ SELECT pg_catalog.setval('public."SalesInvoices_SaleId_seq"', 1, false);
 
 
 --
--- TOC entry 5223 (class 0 OID 0)
+-- TOC entry 5225 (class 0 OID 0)
 -- Dependencies: 222
 -- Name: Sales_Id_seq; Type: SEQUENCE SET; Schema: public; Owner: postgres
 --
@@ -911,7 +919,7 @@ SELECT pg_catalog.setval('public."Sales_Id_seq"', 1, false);
 
 
 --
--- TOC entry 5224 (class 0 OID 0)
+-- TOC entry 5226 (class 0 OID 0)
 -- Dependencies: 245
 -- Name: Vehicles_VehicleId_seq; Type: SEQUENCE SET; Schema: public; Owner: postgres
 --
@@ -1421,11 +1429,11 @@ ALTER TABLE ONLY public."Vehicles"
     ADD CONSTRAINT "FK_Vehicles_AspNetUsers_UserId" FOREIGN KEY ("UserId") REFERENCES public."AspNetUsers"("Id") ON DELETE CASCADE;
 
 
--- Completed on 2026-05-18 13:43:15
+-- Completed on 2026-05-18 14:17:24
 
 --
 -- PostgreSQL database dump complete
 --
 
-\unrestrict 93D0hpUc52Dwt16DXi89zwMlamY0RBk1TIlodHGgF3e7kbNzmsRL9T11reWcHpf
+\unrestrict 0ksh5doN4SpdSLwwDICMrCj9Fi8MR2wMLSBvFhMmFQ3jqPMMbGEr7L5rjvfGqfh
 

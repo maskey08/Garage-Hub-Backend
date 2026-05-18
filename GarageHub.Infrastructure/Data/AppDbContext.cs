@@ -28,10 +28,33 @@ public class AppDbContext : IdentityDbContext<User, IdentityRole<int>, int>
     {
         base.OnModelCreating(modelBuilder);
 
+        modelBuilder.Entity<User>().ToTable("users");
+        modelBuilder.Entity<IdentityRole<int>>().ToTable("roles");
+        modelBuilder.Entity<IdentityUserRole<int>>().ToTable("user_roles");
+        modelBuilder.Entity<IdentityUserClaim<int>>().ToTable("user_claims");
+        modelBuilder.Entity<IdentityUserLogin<int>>().ToTable("user_logins");
+        modelBuilder.Entity<IdentityRoleClaim<int>>().ToTable("role_claims");
+        modelBuilder.Entity<IdentityUserToken<int>>().ToTable("user_tokens");
+
+        foreach (var entityType in modelBuilder.Model.GetEntityTypes())
+        {
+            var tableName = entityType.GetTableName();
+            if (!string.IsNullOrWhiteSpace(tableName))
+            {
+                entityType.SetTableName(ToSnakeCase(tableName));
+            }
+        }
+
         // Configure User and relationships
-        modelBuilder.Entity<User>().Property(u => u.FirstName).HasMaxLength(100);
-        modelBuilder.Entity<User>().Property(u => u.LastName).HasMaxLength(100);
+        modelBuilder.Entity<User>().Property(u => u.FirstName).HasMaxLength(50);
+        modelBuilder.Entity<User>().Property(u => u.LastName).HasMaxLength(50);
+        modelBuilder.Entity<User>().Property(u => u.Email).HasMaxLength(100);
         modelBuilder.Entity<User>().Property(u => u.Phone).HasMaxLength(20);
+        modelBuilder.Entity<User>().Property(u => u.PasswordHashText).HasMaxLength(255);
+        modelBuilder.Entity<User>().Property(u => u.Role).HasMaxLength(20);
+        modelBuilder.Entity<User>().Property(u => u.TotalSpent).HasColumnType("numeric(12,2)");
+        modelBuilder.Entity<User>().Property(u => u.CreditBalance).HasColumnType("numeric(12,2)");
+        modelBuilder.Entity<User>().Property(u => u.CreditDueDate).HasColumnType("date");
 
         // Vehicle → User
         modelBuilder.Entity<Vehicle>(e => {
@@ -143,5 +166,34 @@ public class AppDbContext : IdentityDbContext<User, IdentityRole<int>, int>
              .HasForeignKey(i => i.SaleId)
              .OnDelete(DeleteBehavior.Cascade);
         });
+    }
+
+    private static string ToSnakeCase(string input)
+    {
+        if (string.IsNullOrWhiteSpace(input))
+        {
+            return input;
+        }
+
+        var builder = new System.Text.StringBuilder();
+        for (var i = 0; i < input.Length; i++)
+        {
+            var c = input[i];
+            if (char.IsUpper(c))
+            {
+                if (i > 0)
+                {
+                    builder.Append('_');
+                }
+
+                builder.Append(char.ToLowerInvariant(c));
+            }
+            else
+            {
+                builder.Append(c);
+            }
+        }
+
+        return builder.ToString();
     }
 }
