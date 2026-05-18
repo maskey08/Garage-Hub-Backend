@@ -9,7 +9,7 @@ public class AppDbContext : IdentityDbContext<User, IdentityRole<int>, int>
 {
     public AppDbContext(DbContextOptions<AppDbContext> options) : base(options) { }
 
-    public DbSet<User> Users => Set<User>();
+    public override DbSet<User> Users { get => base.Users; set => base.Users = value; }
     public DbSet<Vehicle> Vehicles => Set<Vehicle>();
     public DbSet<Appointment> Appointments => Set<Appointment>();
     public DbSet<PartRequest> PartRequests => Set<PartRequest>();
@@ -17,6 +17,7 @@ public class AppDbContext : IdentityDbContext<User, IdentityRole<int>, int>
     public DbSet<SalesInvoice> SalesInvoices => Set<SalesInvoice>();
     public DbSet<SalesInvoiceItem> SalesInvoiceItems => Set<SalesInvoiceItem>();
     public DbSet<Notification> Notifications => Set<Notification>();
+    public DbSet<Customer> Customers => Set<Customer>();
     public DbSet<Part> Parts { get; set; }
 
     public DbSet<Sale> Sales { get; set; }
