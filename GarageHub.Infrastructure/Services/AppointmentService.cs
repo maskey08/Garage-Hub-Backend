@@ -1,10 +1,10 @@
-﻿using GarageHub.Application.DTOs.Appointment;
+using GarageHub.Application.DTOs.Appointment;
 using GarageHub.Application.Interfaces;
 using GarageHub.Domain.Entities;
 using Microsoft.EntityFrameworkCore;
 using GarageHub.Infrastructure.Data;
 
-namespace GarageHub.Application.Services;
+namespace GarageHub.Infrastructure.Services;
 
 public class AppointmentService : IAppointmentService
 {

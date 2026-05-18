@@ -8,6 +8,8 @@ namespace GarageHub.Application.DTOs
 
         public string PaymentMethod { get; set; } = string.Empty;
 
+        public int PointsToRedeem { get; set; } = 0;
+
         public List<SaleItemDto> Items { get; set; }
             = new List<SaleItemDto>();
     }

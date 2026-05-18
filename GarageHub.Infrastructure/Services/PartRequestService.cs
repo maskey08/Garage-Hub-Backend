@@ -1,10 +1,10 @@
-﻿using GarageHub.Application.DTOs.PartRequest;
+using GarageHub.Application.DTOs.PartRequest;
 using GarageHub.Application.Interfaces;
 using GarageHub.Domain.Entities;
 using GarageHub.Infrastructure.Data;
 using Microsoft.EntityFrameworkCore;
 
-namespace GarageHub.Application.Services;
+namespace GarageHub.Infrastructure.Services;
 
 public class PartRequestService : IPartRequestService
 {

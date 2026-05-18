@@ -3,7 +3,7 @@ using GarageHub.Domain.Entities;
 using GarageHub.Infrastructure.Data;
 using Microsoft.EntityFrameworkCore;
 
-namespace GarageHub.Application.Services;
+namespace GarageHub.Infrastructure.Services;
 
 public class CustomerService : ICustomerService
 {

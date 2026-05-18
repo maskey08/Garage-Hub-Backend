@@ -15,5 +15,9 @@ namespace GarageHub.Application.DTOs
         public decimal GrandTotal { get; set; }
 
         public DateTime SaleDate { get; set; }
+
+        public int PointsUsed { get; set; }
+
+        public int PointsEarned { get; set; }
     }
 }

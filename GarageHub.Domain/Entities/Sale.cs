@@ -15,7 +15,7 @@ namespace GarageHub.Domain.Entities
 
         public decimal GrandTotal { get; set; }
 
-        public DateTime SaleDate { get; set; } = DateTime.UtcNow;
+        public DateTime SaleDate { get; set; }
 
         public string PaymentMethod { get; set; } = string.Empty;
 

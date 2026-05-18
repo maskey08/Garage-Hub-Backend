@@ -11,7 +11,7 @@ public class PartRequest
     public string PartName { get; set; } = string.Empty;
     public string Description { get; set; } = string.Empty;
     public string Status { get; set; } = "pending"; // pending | sourced | rejected
-    public DateTime RequestedAt { get; set; } = DateTime.UtcNow;
+    public DateTime RequestedAt { get; set; }
 
     public User Customer { get; set; } = null!;
 }

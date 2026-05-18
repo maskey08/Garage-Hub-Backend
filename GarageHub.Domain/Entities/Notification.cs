@@ -11,7 +11,7 @@ public class Notification
     public string Type { get; set; } = string.Empty; // low_stock | credit_reminder
     public string Message { get; set; } = string.Empty;
     public bool IsRead { get; set; } = false;
-    public DateTime SentAt { get; set; } = DateTime.UtcNow;
+    public DateTime SentAt { get; set; }
 
     public User User { get; set; } = null!;
 }

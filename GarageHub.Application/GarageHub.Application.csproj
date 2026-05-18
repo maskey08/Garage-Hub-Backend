@@ -16,7 +16,10 @@
 
   <ItemGroup>
     <ProjectReference Include="..\GarageHub.Domain\GarageHub.Domain.csproj" />
-    <ProjectReference Include="..\GarageHub.Infrastructure\GarageHub.Infrastructure.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Folder Include="Services\" />
   </ItemGroup>
 
 </Project>

@@ -11,7 +11,7 @@ public class Review
     public int AppointmentId { get; set; }
     public int Rating { get; set; } // 1–5
     public string? Comment { get; set; }
-    public DateTime ReviewedAt { get; set; } = DateTime.UtcNow;
+    public DateTime ReviewedAt { get; set; }
 
     public User Customer { get; set; } = null!;
     public Appointment Appointment { get; set; } = null!;

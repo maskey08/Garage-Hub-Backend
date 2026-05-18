@@ -6,5 +6,9 @@ namespace GarageHub.Application.Interfaces
     public interface ISaleService
     {
         Task<SaleResponseDto> CreateSaleAsync(CreateSaleRequestDto request);
+
+        Task<LoyaltyResponseDto> GetLoyaltyPointsAsync(int userId);
+
+        Task<List<CustomerReportDto>> GetCustomerReportsAsync();
     }
 }

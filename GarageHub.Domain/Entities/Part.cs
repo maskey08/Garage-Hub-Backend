@@ -6,7 +6,7 @@ namespace GarageHub.Domain.Entities
 {
     public class Part
     {
-        public int Id { get; set; }
+        public int PartId { get; set; }
 
         public string PartName { get; set; } = string.Empty;
 

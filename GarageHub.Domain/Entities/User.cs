@@ -10,6 +10,8 @@ public class User
     public string Role { get; set; } = "customer";
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
 
+    public int LoyaltyPoints { get; set; } = 0;
+
     public ICollection<Vehicle> Vehicles { get; set; } = [];
     public ICollection<Appointment> Appointments { get; set; } = [];
     public ICollection<Review> Reviews { get; set; } = [];

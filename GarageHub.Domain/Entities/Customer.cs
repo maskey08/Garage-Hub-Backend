@@ -14,5 +14,6 @@ namespace GarageHub.Domain.Entities
         public User? User { get; set; }
         public ICollection<Vehicle> Vehicles { get; set; } = new List<Vehicle>();
         public ICollection<Purchase> Purchases { get; set; } = new List<Purchase>();
+
     }
 }

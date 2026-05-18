@@ -1,10 +1,10 @@
-﻿using GarageHub.Application.DTOs.Review;
+using GarageHub.Application.DTOs.Review;
 using GarageHub.Application.Interfaces;
 using GarageHub.Domain.Entities;
 using GarageHub.Infrastructure.Data;
 using Microsoft.EntityFrameworkCore;
 
-namespace GarageHub.Application.Services;
+namespace GarageHub.Infrastructure.Services;
 
 public class ReviewService : IReviewService
 {
