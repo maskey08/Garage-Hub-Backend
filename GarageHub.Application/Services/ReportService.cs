@@ -121,10 +121,10 @@ namespace GarageHub.Application.Services
 
             return topCustomers.Select(c => new TopCustomerDto
             {
-                CustomerId = c.user_id,
-                CustomerName = $"{c.first_name} {c.last_name}".Trim(),
-                Phone = c.phone,
-                Email = c.email,
+                CustomerId = c.Id,
+                CustomerName = $"{c.FirstName} {c.LastName}".Trim(),
+                Phone = c.Phone,
+                Email = c.Email,
                 TotalPurchases = c.SalesInvoices?.Count ?? 0,
                 TotalSpent = (decimal)(c.SalesInvoices?.Sum(s => s.TotalAmount) ?? 0)
             }).ToList();

@@ -62,6 +62,46 @@ namespace GarageHub.Infrastructure.Migrations
                     b.ToTable("Appointments");
                 });
 
+            modelBuilder.Entity("GarageHub.Domain.Entities.Customer", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
+
+                    b.Property<string>("Address")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<decimal>("CreditBalance")
+                        .HasColumnType("numeric");
+
+                    b.Property<string>("Email")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<string>("FullName")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<string>("Phone")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<DateTime>("RegisteredDate")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<int>("UserId")
+                        .HasColumnType("integer");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("UserId");
+
+                    b.ToTable("Customers");
+                });
+
             modelBuilder.Entity("GarageHub.Domain.Entities.Invoice", b =>
                 {
                     b.Property<int>("Id")
@@ -135,7 +175,22 @@ namespace GarageHub.Infrastructure.Migrations
                         .IsRequired()
                         .HasColumnType("text");
 
+                    b.Property<string>("Category")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("Description")
+                        .IsRequired()
+                        .HasColumnType("text");
+
                     b.Property<string>("PartName")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<string>("PartNumber")
                         .IsRequired()
                         .HasColumnType("text");
 
@@ -143,6 +198,9 @@ namespace GarageHub.Infrastructure.Migrations
                         .HasColumnType("numeric");
 
                     b.Property<int>("StockQuantity")
+                        .HasColumnType("integer");
+
+                    b.Property<int?>("VendorId")
                         .HasColumnType("integer");
 
                     b.HasKey("Id");
@@ -181,6 +239,36 @@ namespace GarageHub.Infrastructure.Migrations
                     b.HasIndex("CustomerId");
 
                     b.ToTable("PartRequests");
+                });
+
+            modelBuilder.Entity("GarageHub.Domain.Entities.Purchase", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
+
+                    b.Property<int>("CustomerId")
+                        .HasColumnType("integer");
+
+                    b.Property<bool>("IsPaid")
+                        .HasColumnType("boolean");
+
+                    b.Property<DateTime?>("PaymentDueDate")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<DateTime>("PurchaseDate")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<decimal>("TotalAmount")
+                        .HasColumnType("numeric");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("CustomerId");
+
+                    b.ToTable("Purchase");
                 });
 
             modelBuilder.Entity("GarageHub.Domain.Entities.Review", b =>
@@ -245,6 +333,8 @@ namespace GarageHub.Infrastructure.Migrations
 
                     b.HasKey("Id");
 
+                    b.HasIndex("CustomerId");
+
                     b.ToTable("Sales");
                 });
 
@@ -272,6 +362,8 @@ namespace GarageHub.Infrastructure.Migrations
                         .HasColumnType("numeric");
 
                     b.HasKey("Id");
+
+                    b.HasIndex("PartId");
 
                     b.HasIndex("SaleId");
 
@@ -335,10 +427,15 @@ namespace GarageHub.Infrastructure.Migrations
                     b.Property<int>("SaleId")
                         .HasColumnType("integer");
 
+                    b.Property<float>("TotalPrice")
+                        .HasColumnType("real");
+
                     b.Property<float>("UnitPrice")
                         .HasColumnType("real");
 
                     b.HasKey("ItemId");
+
+                    b.HasIndex("PartId");
 
                     b.HasIndex("SaleId");
 
@@ -347,43 +444,87 @@ namespace GarageHub.Infrastructure.Migrations
 
             modelBuilder.Entity("GarageHub.Domain.Entities.User", b =>
                 {
-                    b.Property<int>("UserId")
+                    b.Property<int>("Id")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("integer");
 
-                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("UserId"));
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
+
+                    b.Property<int>("AccessFailedCount")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("ConcurrencyStamp")
+                        .IsConcurrencyToken()
+                        .HasColumnType("text");
 
                     b.Property<DateTime>("CreatedAt")
                         .HasColumnType("timestamp with time zone");
 
                     b.Property<string>("Email")
-                        .IsRequired()
-                        .HasColumnType("text");
+                        .HasMaxLength(256)
+                        .HasColumnType("character varying(256)");
 
-                    b.Property<string>("FullName")
-                        .IsRequired()
-                        .HasColumnType("text");
-
-                    b.Property<bool>("IsActive")
+                    b.Property<bool>("EmailConfirmed")
                         .HasColumnType("boolean");
 
-                    b.Property<string>("PasswordHash")
+                    b.Property<string>("FirstName")
                         .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)");
+
+                    b.Property<string>("LastName")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)");
+
+                    b.Property<bool>("LockoutEnabled")
+                        .HasColumnType("boolean");
+
+                    b.Property<DateTimeOffset?>("LockoutEnd")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("NormalizedEmail")
+                        .HasMaxLength(256)
+                        .HasColumnType("character varying(256)");
+
+                    b.Property<string>("NormalizedUserName")
+                        .HasMaxLength(256)
+                        .HasColumnType("character varying(256)");
+
+                    b.Property<string>("PasswordHash")
                         .HasColumnType("text");
 
                     b.Property<string>("Phone")
                         .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)");
+
+                    b.Property<string>("PhoneNumber")
                         .HasColumnType("text");
 
-                    b.Property<string>("Role")
-                        .IsRequired()
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("text")
-                        .HasDefaultValue("customer");
+                    b.Property<bool>("PhoneNumberConfirmed")
+                        .HasColumnType("boolean");
 
-                    b.HasKey("UserId");
+                    b.Property<string>("SecurityStamp")
+                        .HasColumnType("text");
 
-                    b.ToTable("Users");
+                    b.Property<bool>("TwoFactorEnabled")
+                        .HasColumnType("boolean");
+
+                    b.Property<string>("UserName")
+                        .HasMaxLength(256)
+                        .HasColumnType("character varying(256)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("NormalizedEmail")
+                        .HasDatabaseName("EmailIndex");
+
+                    b.HasIndex("NormalizedUserName")
+                        .IsUnique()
+                        .HasDatabaseName("UserNameIndex");
+
+                    b.ToTable("AspNetUsers", (string)null);
                 });
 
             modelBuilder.Entity("GarageHub.Domain.Entities.Vehicle", b =>
@@ -393,6 +534,9 @@ namespace GarageHub.Infrastructure.Migrations
                         .HasColumnType("integer");
 
                     NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("VehicleId"));
+
+                    b.Property<int>("CustomerId")
+                        .HasColumnType("integer");
 
                     b.Property<string>("Make")
                         .IsRequired()
@@ -418,9 +562,143 @@ namespace GarageHub.Infrastructure.Migrations
 
                     b.HasKey("VehicleId");
 
+                    b.HasIndex("CustomerId");
+
                     b.HasIndex("UserId");
 
                     b.ToTable("Vehicles");
+                });
+
+            modelBuilder.Entity("Microsoft.AspNetCore.Identity.IdentityRole<int>", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
+
+                    b.Property<string>("ConcurrencyStamp")
+                        .IsConcurrencyToken()
+                        .HasColumnType("text");
+
+                    b.Property<string>("Name")
+                        .HasMaxLength(256)
+                        .HasColumnType("character varying(256)");
+
+                    b.Property<string>("NormalizedName")
+                        .HasMaxLength(256)
+                        .HasColumnType("character varying(256)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("NormalizedName")
+                        .IsUnique()
+                        .HasDatabaseName("RoleNameIndex");
+
+                    b.ToTable("AspNetRoles", (string)null);
+                });
+
+            modelBuilder.Entity("Microsoft.AspNetCore.Identity.IdentityRoleClaim<int>", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
+
+                    b.Property<string>("ClaimType")
+                        .HasColumnType("text");
+
+                    b.Property<string>("ClaimValue")
+                        .HasColumnType("text");
+
+                    b.Property<int>("RoleId")
+                        .HasColumnType("integer");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("RoleId");
+
+                    b.ToTable("AspNetRoleClaims", (string)null);
+                });
+
+            modelBuilder.Entity("Microsoft.AspNetCore.Identity.IdentityUserClaim<int>", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
+
+                    b.Property<string>("ClaimType")
+                        .HasColumnType("text");
+
+                    b.Property<string>("ClaimValue")
+                        .HasColumnType("text");
+
+                    b.Property<int>("UserId")
+                        .HasColumnType("integer");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("UserId");
+
+                    b.ToTable("AspNetUserClaims", (string)null);
+                });
+
+            modelBuilder.Entity("Microsoft.AspNetCore.Identity.IdentityUserLogin<int>", b =>
+                {
+                    b.Property<string>("LoginProvider")
+                        .HasColumnType("text");
+
+                    b.Property<string>("ProviderKey")
+                        .HasColumnType("text");
+
+                    b.Property<string>("ProviderDisplayName")
+                        .HasColumnType("text");
+
+                    b.Property<int>("UserId")
+                        .HasColumnType("integer");
+
+                    b.HasKey("LoginProvider", "ProviderKey");
+
+                    b.HasIndex("UserId");
+
+                    b.ToTable("AspNetUserLogins", (string)null);
+                });
+
+            modelBuilder.Entity("Microsoft.AspNetCore.Identity.IdentityUserRole<int>", b =>
+                {
+                    b.Property<int>("UserId")
+                        .HasColumnType("integer");
+
+                    b.Property<int>("RoleId")
+                        .HasColumnType("integer");
+
+                    b.HasKey("UserId", "RoleId");
+
+                    b.HasIndex("RoleId");
+
+                    b.ToTable("AspNetUserRoles", (string)null);
+                });
+
+            modelBuilder.Entity("Microsoft.AspNetCore.Identity.IdentityUserToken<int>", b =>
+                {
+                    b.Property<int>("UserId")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("LoginProvider")
+                        .HasColumnType("text");
+
+                    b.Property<string>("Name")
+                        .HasColumnType("text");
+
+                    b.Property<string>("Value")
+                        .HasColumnType("text");
+
+                    b.HasKey("UserId", "LoginProvider", "Name");
+
+                    b.ToTable("AspNetUserTokens", (string)null);
                 });
 
             modelBuilder.Entity("GarageHub.Domain.Entities.Appointment", b =>
@@ -440,6 +718,17 @@ namespace GarageHub.Infrastructure.Migrations
                     b.Navigation("Customer");
 
                     b.Navigation("Vehicle");
+                });
+
+            modelBuilder.Entity("GarageHub.Domain.Entities.Customer", b =>
+                {
+                    b.HasOne("GarageHub.Domain.Entities.User", "User")
+                        .WithMany()
+                        .HasForeignKey("UserId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("User");
                 });
 
             modelBuilder.Entity("GarageHub.Domain.Entities.Invoice", b =>
@@ -475,6 +764,17 @@ namespace GarageHub.Infrastructure.Migrations
                     b.Navigation("Customer");
                 });
 
+            modelBuilder.Entity("GarageHub.Domain.Entities.Purchase", b =>
+                {
+                    b.HasOne("GarageHub.Domain.Entities.Customer", "Customer")
+                        .WithMany("Purchases")
+                        .HasForeignKey("CustomerId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Customer");
+                });
+
             modelBuilder.Entity("GarageHub.Domain.Entities.Review", b =>
                 {
                     b.HasOne("GarageHub.Domain.Entities.Appointment", "Appointment")
@@ -494,8 +794,23 @@ namespace GarageHub.Infrastructure.Migrations
                     b.Navigation("Customer");
                 });
 
+            modelBuilder.Entity("GarageHub.Domain.Entities.Sale", b =>
+                {
+                    b.HasOne("GarageHub.Domain.Entities.User", null)
+                        .WithMany()
+                        .HasForeignKey("CustomerId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+                });
+
             modelBuilder.Entity("GarageHub.Domain.Entities.SaleItem", b =>
                 {
+                    b.HasOne("GarageHub.Domain.Entities.Part", null)
+                        .WithMany()
+                        .HasForeignKey("PartId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
                     b.HasOne("GarageHub.Domain.Entities.Sale", "Sale")
                         .WithMany("SaleItems")
                         .HasForeignKey("SaleId")
@@ -518,29 +833,103 @@ namespace GarageHub.Infrastructure.Migrations
 
             modelBuilder.Entity("GarageHub.Domain.Entities.SalesInvoiceItem", b =>
                 {
+                    b.HasOne("GarageHub.Domain.Entities.Part", "Part")
+                        .WithMany()
+                        .HasForeignKey("PartId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
                     b.HasOne("GarageHub.Domain.Entities.SalesInvoice", "SalesInvoice")
                         .WithMany("Items")
                         .HasForeignKey("SaleId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
+                    b.Navigation("Part");
+
                     b.Navigation("SalesInvoice");
                 });
 
             modelBuilder.Entity("GarageHub.Domain.Entities.Vehicle", b =>
                 {
+                    b.HasOne("GarageHub.Domain.Entities.Customer", "Customer")
+                        .WithMany("Vehicles")
+                        .HasForeignKey("CustomerId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
                     b.HasOne("GarageHub.Domain.Entities.User", "User")
                         .WithMany("Vehicles")
                         .HasForeignKey("UserId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
+                    b.Navigation("Customer");
+
                     b.Navigation("User");
+                });
+
+            modelBuilder.Entity("Microsoft.AspNetCore.Identity.IdentityRoleClaim<int>", b =>
+                {
+                    b.HasOne("Microsoft.AspNetCore.Identity.IdentityRole<int>", null)
+                        .WithMany()
+                        .HasForeignKey("RoleId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("Microsoft.AspNetCore.Identity.IdentityUserClaim<int>", b =>
+                {
+                    b.HasOne("GarageHub.Domain.Entities.User", null)
+                        .WithMany()
+                        .HasForeignKey("UserId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("Microsoft.AspNetCore.Identity.IdentityUserLogin<int>", b =>
+                {
+                    b.HasOne("GarageHub.Domain.Entities.User", null)
+                        .WithMany()
+                        .HasForeignKey("UserId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("Microsoft.AspNetCore.Identity.IdentityUserRole<int>", b =>
+                {
+                    b.HasOne("Microsoft.AspNetCore.Identity.IdentityRole<int>", null)
+                        .WithMany()
+                        .HasForeignKey("RoleId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("GarageHub.Domain.Entities.User", null)
+                        .WithMany()
+                        .HasForeignKey("UserId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("Microsoft.AspNetCore.Identity.IdentityUserToken<int>", b =>
+                {
+                    b.HasOne("GarageHub.Domain.Entities.User", null)
+                        .WithMany()
+                        .HasForeignKey("UserId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
                 });
 
             modelBuilder.Entity("GarageHub.Domain.Entities.Appointment", b =>
                 {
                     b.Navigation("Review");
+                });
+
+            modelBuilder.Entity("GarageHub.Domain.Entities.Customer", b =>
+                {
+                    b.Navigation("Purchases");
+
+                    b.Navigation("Vehicles");
                 });
 
             modelBuilder.Entity("GarageHub.Domain.Entities.Sale", b =>

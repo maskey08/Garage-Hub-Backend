@@ -19,11 +19,31 @@ public class AppointmentController : ControllerBase
 
     [HttpPost]
     public async Task<IActionResult> Book(AppointmentCreateDto dto)
-        => Ok(await _appointmentService.BookAsync(GetUserId(), dto));
+    {
+        try
+        {
+            var result = await _appointmentService.BookAsync(GetUserId(), dto);
+            return Ok(result);
+        }
+        catch (Exception ex)
+        {
+            return BadRequest(new { message = ex.Message });
+        }
+    }
 
     [HttpGet]
     public async Task<IActionResult> GetMine()
-        => Ok(await _appointmentService.GetByCustomerAsync(GetUserId()));
+    {
+        try
+        {
+            var appointments = await _appointmentService.GetByCustomerAsync(GetUserId());
+            return Ok(appointments);
+        }
+        catch (Exception ex)
+        {
+            return BadRequest(new { message = ex.Message });
+        }
+    }
 
     [HttpPatch("{id}/cancel")]
     public async Task<IActionResult> Cancel(int id)

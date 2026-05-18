@@ -11,7 +11,7 @@ public class ReviewService : IReviewService
     private readonly AppDbContext _db;
     public ReviewService(AppDbContext db) => _db = db;
 
-    public async Task<Review> SubmitAsync(int customerId, ReviewCreateDto dto)
+    public async Task<ReviewResponseDto> SubmitAsync(int customerId, ReviewCreateDto dto)
     {
         var appointment = await _db.Appointments
             .FirstOrDefaultAsync(a => a.AppointmentId == dto.AppointmentId && a.CustomerId == customerId)
@@ -32,13 +32,33 @@ public class ReviewService : IReviewService
         };
         _db.Reviews.Add(review);
         await _db.SaveChangesAsync();
-        return review;
+
+        return new ReviewResponseDto
+        {
+            ReviewId = review.ReviewId,
+            CustomerId = review.CustomerId,
+            AppointmentId = review.AppointmentId,
+            Rating = review.Rating,
+            Comment = review.Comment,
+            ReviewedAt = review.ReviewedAt
+        };
     }
 
-    public async Task<IEnumerable<Review>> GetByCustomerAsync(int customerId)
-        => await _db.Reviews
-            .Include(r => r.Appointment)
+    public async Task<IEnumerable<ReviewResponseDto>> GetByCustomerAsync(int customerId)
+    {
+        var reviews = await _db.Reviews
             .Where(r => r.CustomerId == customerId)
             .OrderByDescending(r => r.ReviewedAt)
             .ToListAsync();
+
+        return reviews.Select(r => new ReviewResponseDto
+        {
+            ReviewId = r.ReviewId,
+            CustomerId = r.CustomerId,
+            AppointmentId = r.AppointmentId,
+            Rating = r.Rating,
+            Comment = r.Comment,
+            ReviewedAt = r.ReviewedAt
+        });
+    }
 }

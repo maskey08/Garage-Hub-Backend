@@ -32,7 +32,6 @@ namespace GarageHub.Infrastructure.Repositories
         public async Task<List<User>> GetTopCustomersAsync(int limit = 10)
         {
             return await _context.Users
-                .Where(u => u.role == "customer")
                 .Include(u => u.SalesInvoices)
                 .OrderByDescending(u => u.SalesInvoices.Sum(s => s.TotalAmount))
                 .Take(limit)

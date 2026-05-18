@@ -2,11 +2,13 @@ using Microsoft.AspNetCore.Mvc;
 using System.Threading.Tasks;
 using GarageHub.Application.DTOs;
 using GarageHub.Application.Interfaces;
+using Microsoft.AspNetCore.Authorization;
 
 namespace GarageHub.API.Controllers
 {
     [ApiController]
     [Route("api/[controller]")]
+    [Authorize(Roles = "staff,admin")]
     public class SalesController : ControllerBase
     {
         private readonly ISaleService _saleService;

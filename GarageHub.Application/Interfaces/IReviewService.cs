@@ -1,13 +1,9 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Text;
-using GarageHub.Application.DTOs.Review;
-using GarageHub.Domain.Entities;
+﻿using GarageHub.Application.DTOs.Review;
 
 namespace GarageHub.Application.Interfaces;
 
 public interface IReviewService
 {
-    Task<Review> SubmitAsync(int customerId, ReviewCreateDto dto);
-    Task<IEnumerable<Review>> GetByCustomerAsync(int customerId);
+    Task<ReviewResponseDto> SubmitAsync(int customerId, ReviewCreateDto dto);
+    Task<IEnumerable<ReviewResponseDto>> GetByCustomerAsync(int customerId);
 }
