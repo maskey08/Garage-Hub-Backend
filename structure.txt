@@ -1,0 +1,34 @@
+Folder PATH listing for volume OS
+Volume serial number is 585F-03E8
+C:.
+¦   .gitignore
+¦   Garage Hub.slnx
+¦   structure.txt
+¦   
++---GarageHub.API
+¦   ¦   appsettings.Development.json
+¦   ¦   appsettings.json
+¦   ¦   GarageHub.API.csproj
+¦   ¦   GarageHub.API.csproj.user
+¦   ¦   GarageHub.API.http
+¦   ¦   Program.cs
+¦   ¦   WeatherForecast.cs
+¦   ¦   
+¦   +---Controllers
+¦   ¦       WeatherForecastController.cs
+¦   ¦       
+¦   +---Properties
+¦           launchSettings.json
+¦           
++---GarageHub.Application
+¦       Class1.cs
+¦       GarageHub.Application.csproj
+¦       
++---GarageHub.Domain
+¦       Class1.cs
+¦       GarageHub.Domain.csproj
+¦       
++---GarageHub.Infrastructure
+        Class1.cs
+        GarageHub.Infrastructure.csproj
+        
