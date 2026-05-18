@@ -20,7 +20,7 @@ namespace GarageHub.Infrastructure.Repositories
 
         public async Task<User?> GetByEmailAsync(string email)
         {
-            return await _context.Users.FirstOrDefaultAsync(u => u.Email == email);
+            return await _context.Users.FirstOrDefaultAsync(u => u.email == email);
         }
 
         public async Task<IEnumerable<User>> GetAllAsync()
@@ -31,7 +31,7 @@ namespace GarageHub.Infrastructure.Repositories
         public async Task<IEnumerable<User>> GetAllStaffAsync()
         {
             return await _context.Users
-                .Where(u => u.Role == "staff" || u.Role == "admin")
+                .Where(u => u.role == "staff" || u.role == "admin")
                 .ToListAsync();
         }
 
@@ -61,7 +61,7 @@ namespace GarageHub.Infrastructure.Repositories
 
         public async Task<bool> EmailExistsAsync(string email)
         {
-            return await _context.Users.AnyAsync(u => u.Email == email);
+            return await _context.Users.AnyAsync(u => u.email == email);
         }
     }
 }

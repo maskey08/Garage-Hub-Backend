@@ -23,13 +23,12 @@ public class AppDbContext : DbContext
     
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
-        // User
+        // User - uses [Column] attributes from User.cs
         modelBuilder.Entity<User>(e => {
-            e.HasKey(u => u.UserId);
-            e.Property(u => u.Role).HasDefaultValue("customer");
+            e.HasKey(u => u.user_id);
         });
 
-        // Customer (no extra config needed beyond key)
+        // Customer
         modelBuilder.Entity<Customer>(e => {
             e.HasKey(c => c.Id);
         });
@@ -56,7 +55,7 @@ public class AppDbContext : DbContext
              .OnDelete(DeleteBehavior.Restrict);
         });
 
-        // Review → Appointment (one-to-one)
+        // Review → Appointment
         modelBuilder.Entity<Review>(e => {
             e.HasKey(r => r.ReviewId);
             e.HasOne(r => r.Appointment)

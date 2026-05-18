@@ -13,27 +13,28 @@ namespace GarageHub.Infrastructure.Repositories
             _context = context;
         }
 
-        public async Task<List<Purchase>> GetPurchasesByDateRangeAsync(DateTime startDate, DateTime endDate)
+        public async Task<List<SalesInvoice>> GetPurchasesByDateRangeAsync(DateTime startDate, DateTime endDate)
         {
-            return await _context.Set<Purchase>()
-                .Where(p => p.PurchaseDate >= startDate && p.PurchaseDate <= endDate)
-                .Include(p => p.Customer)
+            return await _context.SalesInvoices
+                .Where(s => s.SaleDate >= startDate && s.SaleDate <= endDate)
+                .Include(s => s.Customer)
                 .ToListAsync();
         }
 
         public async Task<List<Part>> GetLowStockPartsAsync(int threshold = 10)
         {
-            return await _context.Set<Part>()
+            return await _context.Parts
                 .Where(p => p.StockQuantity < threshold)
                 .OrderBy(p => p.StockQuantity)
                 .ToListAsync();
         }
 
-        public async Task<List<Customer>> GetTopCustomersAsync(int limit = 10)
+        public async Task<List<User>> GetTopCustomersAsync(int limit = 10)
         {
-            return await _context.Set<Customer>()
-                .Include(c => c.Purchases)
-                .OrderByDescending(c => c.Purchases.Sum(p => p.TotalAmount))
+            return await _context.Users
+                .Where(u => u.role == "customer")
+                .Include(u => u.SalesInvoices)
+                .OrderByDescending(u => u.SalesInvoices.Sum(s => s.TotalAmount))
                 .Take(limit)
                 .ToListAsync();
         }

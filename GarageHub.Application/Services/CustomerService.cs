@@ -18,19 +18,19 @@ public class CustomerService : ICustomerService
     public async Task<IEnumerable<CustomerDto>> SearchCustomersAsync(string searchTerm, string searchBy)
     {
         var allUsers = await _userRepository.GetAllAsync();
-        var customers = allUsers.Where(u => u.Role.ToLower() == "customer");
+        var customers = allUsers.Where(u => u.role.ToLower() == "customer");
         
         switch (searchBy.ToLower())
         {
             case "name":
-                customers = customers.Where(c => c.FullName.Contains(searchTerm));
+                customers = customers.Where(c => (c.first_name + " " + c.last_name).ToLower().Contains(searchTerm.ToLower()));
                 break;
             case "phone":
-                customers = customers.Where(c => c.Phone.Contains(searchTerm));
+                customers = customers.Where(c => c.phone.Contains(searchTerm));
                 break;
             case "id":
                 if (int.TryParse(searchTerm, out int id))
-                    customers = customers.Where(c => c.UserId == id);
+                    customers = customers.Where(c => c.user_id == id);
                 break;
             default:
                 return new List<CustomerDto>();
@@ -43,7 +43,7 @@ public class CustomerService : ICustomerService
     public async Task<CustomerDto?> GetCustomerWithDetailsAsync(int id)
     {
         var user = await _userRepository.GetByIdAsync(id);
-        if (user == null || user.Role.ToLower() != "customer")
+        if (user == null || user.role.ToLower() != "customer")
             return null;
         
         return MapToDto(user);
@@ -53,12 +53,13 @@ public class CustomerService : ICustomerService
     {
         return new CustomerDto
         {
-            Id = user.UserId,
-            FullName = user.FullName,
-            Phone = user.Phone,
-            Email = user.Email,
-            RegisteredDate = user.CreatedAt,
-            CreditBalance = 0,
+            Id = user.user_id,
+            FullName = $"{user.first_name} {user.last_name}".Trim(),
+            Phone = user.phone,
+            Email = user.email,
+            RegisteredDate = user.created_at,
+            CreditBalance = user.credit_balance,
+            Address = "",
             Vehicles = new List<VehicleDto>(),
             Purchases = new List<PurchaseSummaryDto>()
         };

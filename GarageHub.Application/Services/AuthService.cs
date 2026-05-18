@@ -24,16 +24,17 @@ public class AuthService : IAuthService
 
     public async Task<AuthResponseDto> RegisterAsync(RegisterDto dto)
     {
-        if (await _context.Users.AnyAsync(u => u.Email == dto.Email))
+        if (await _context.Users.AnyAsync(u => u.email == dto.Email))
             return new AuthResponseDto { Success = false, Message = "Email already exists" };
 
         var user = new User
         {
-            Email = dto.Email,
-            Phone = dto.Phone,
-            Role = dto.Role,
-            // ✅ BCrypt.Net-Next — correct usage
-            PasswordHash = BCrypt.Net.BCrypt.HashPassword(dto.Password)
+            first_name = dto.FirstName,
+            last_name = dto.LastName,
+            email = dto.Email,
+            phone = dto.Phone,
+            role = dto.Role,
+            password_hash = BCrypt.Net.BCrypt.HashPassword(dto.Password)
         };
 
         _context.Users.Add(user);
@@ -43,35 +44,45 @@ public class AuthService : IAuthService
         {
             Success = true,
             Message = "Registration successful",
-            Token = GenerateJwtToken(user)
+            Token = GenerateJwtToken(user),
+            FullName = $"{user.first_name} {user.last_name}".Trim(),
+            Email = user.email,
+            Role = user.role,
+            UserId = user.user_id
         };
     }
 
     public async Task<AuthResponseDto> LoginAsync(LoginDto dto)
     {
-        var user = await _context.Users.FirstOrDefaultAsync(u => u.Email == dto.Email);
-        if (user == null || !BCrypt.Net.BCrypt.Verify(dto.Password, user.PasswordHash))
+        var user = await _context.Users.FirstOrDefaultAsync(u => u.email == dto.Email);
+        
+        if (user == null || !BCrypt.Net.BCrypt.Verify(dto.Password, user.password_hash))
             return new AuthResponseDto { Success = false, Message = "Invalid credentials" };
 
         return new AuthResponseDto
         {
             Success = true,
             Message = "Login successful",
-            Token = GenerateJwtToken(user)
+            Token = GenerateJwtToken(user),
+            FullName = $"{user.first_name} {user.last_name}".Trim(),
+            Email = user.email,
+            Role = user.role,
+            UserId = user.user_id
         };
     }
 
     private string GenerateJwtToken(User user)
     {
         var key = new SymmetricSecurityKey(
-            Encoding.UTF8.GetBytes(_configuration["Jwt:Key"]!));
+            Encoding.UTF8.GetBytes(_configuration["Jwt:Key"] ?? "GarageHubSecretKey12345678901234567890"));
         var creds = new SigningCredentials(key, SecurityAlgorithms.HmacSha256);
 
         var claims = new[]
         {
-            new Claim(ClaimTypes.NameIdentifier, user.UserId.ToString()),
-            new Claim(ClaimTypes.Email, user.Email),
-            new Claim(ClaimTypes.Role, user.Role)
+            new Claim(ClaimTypes.NameIdentifier, user.user_id.ToString()),
+            new Claim(ClaimTypes.Name, $"{user.first_name} {user.last_name}".Trim()),
+            new Claim(ClaimTypes.Email, user.email),
+            new Claim(ClaimTypes.Role, user.role)
         };
 
         var token = new JwtSecurityToken(

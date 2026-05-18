@@ -15,13 +15,13 @@ namespace GarageHub.Application.Services
 
         public async Task<DailyReportDto> GetDailyReportAsync(DateTime date)
         {
-            var startDate = date.Date;
+            var startDate = DateTime.SpecifyKind(date.Date, DateTimeKind.Utc);
             var endDate = startDate.AddDays(1).AddSeconds(-1);
 
-            var purchases = await _reportRepository.GetPurchasesByDateRangeAsync(startDate, endDate);
+            var sales = await _reportRepository.GetPurchasesByDateRangeAsync(startDate, endDate);
 
-            var totalRevenue = purchases.Sum(p => p.TotalAmount);
-            var totalOrders = purchases.Count;
+            var totalRevenue = sales.Sum(s => (decimal)s.TotalAmount);
+            var totalOrders = sales.Count;
 
             return new DailyReportDto
             {
@@ -34,22 +34,22 @@ namespace GarageHub.Application.Services
 
         public async Task<MonthlyReportDto> GetMonthlyReportAsync(int year, int month)
         {
-            var startDate = new DateTime(year, month, 1);
+            var startDate = DateTime.SpecifyKind(new DateTime(year, month, 1), DateTimeKind.Utc);
             var endDate = startDate.AddMonths(1).AddSeconds(-1);
 
-            var purchases = await _reportRepository.GetPurchasesByDateRangeAsync(startDate, endDate);
+            var sales = await _reportRepository.GetPurchasesByDateRangeAsync(startDate, endDate);
 
-            var totalRevenue = purchases.Sum(p => p.TotalAmount);
-            var totalOrders = purchases.Count;
+            var totalRevenue = sales.Sum(s => (decimal)s.TotalAmount);
+            var totalOrders = sales.Count;
 
-            var dailyBreakdown = purchases
-                .GroupBy(p => p.PurchaseDate.Date)
+            var dailyBreakdown = sales
+                .GroupBy(s => DateTime.SpecifyKind(s.SaleDate.Date, DateTimeKind.Utc))
                 .Select(g => new DailyReportDto
                 {
                     Date = g.Key,
                     TotalOrders = g.Count(),
-                    TotalRevenue = g.Sum(p => p.TotalAmount),
-                    AverageOrderValue = g.Sum(p => p.TotalAmount) / g.Count()
+                    TotalRevenue = g.Sum(s => (decimal)s.TotalAmount),
+                    AverageOrderValue = g.Count() > 0 ? g.Sum(s => (decimal)s.TotalAmount) / g.Count() : 0
                 })
                 .OrderBy(d => d.Date)
                 .ToList();
@@ -67,27 +67,27 @@ namespace GarageHub.Application.Services
 
         public async Task<YearlyReportDto> GetYearlyReportAsync(int year)
         {
-            var startDate = new DateTime(year, 1, 1);
-            var endDate = new DateTime(year, 12, 31, 23, 59, 59);
+            var startDate = DateTime.SpecifyKind(new DateTime(year, 1, 1), DateTimeKind.Utc);
+            var endDate = DateTime.SpecifyKind(new DateTime(year, 12, 31, 23, 59, 59), DateTimeKind.Utc);
 
-            var purchases = await _reportRepository.GetPurchasesByDateRangeAsync(startDate, endDate);
+            var sales = await _reportRepository.GetPurchasesByDateRangeAsync(startDate, endDate);
 
-            var totalRevenue = purchases.Sum(p => p.TotalAmount);
-            var totalOrders = purchases.Count;
+            var totalRevenue = sales.Sum(s => (decimal)s.TotalAmount);
+            var totalOrders = sales.Count;
 
             var monthlyBreakdown = Enumerable.Range(1, 12)
                 .Select(month => new
                 {
                     Month = month,
-                    Purchases = purchases.Where(p => p.PurchaseDate.Month == month).ToList()
+                    Sales = sales.Where(s => s.SaleDate.Month == month).ToList()
                 })
                 .Select(m => new MonthlyReportDto
                 {
                     Year = year,
                     Month = m.Month,
                     MonthName = new DateTime(year, m.Month, 1).ToString("MMMM"),
-                    TotalOrders = m.Purchases.Count,
-                    TotalRevenue = m.Purchases.Sum(p => p.TotalAmount),
+                    TotalOrders = m.Sales.Count,
+                    TotalRevenue = m.Sales.Sum(s => (decimal)s.TotalAmount),
                     DailyBreakdown = new List<DailyReportDto>()
                 })
                 .ToList();
@@ -121,12 +121,12 @@ namespace GarageHub.Application.Services
 
             return topCustomers.Select(c => new TopCustomerDto
             {
-                CustomerId = c.Id,
-                CustomerName = c.FullName,
-                Phone = c.Phone,
-                Email = c.Email,
-                TotalPurchases = c.Purchases?.Count ?? 0,
-                TotalSpent = c.Purchases?.Sum(p => p.TotalAmount) ?? 0
+                CustomerId = c.user_id,
+                CustomerName = $"{c.first_name} {c.last_name}".Trim(),
+                Phone = c.phone,
+                Email = c.email,
+                TotalPurchases = c.SalesInvoices?.Count ?? 0,
+                TotalSpent = (decimal)(c.SalesInvoices?.Sum(s => s.TotalAmount) ?? 0)
             }).ToList();
         }
     }
