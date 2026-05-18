@@ -12,4 +12,11 @@ public class RegisterDto
     public string Phone { get; set; } = string.Empty;
     public string Password { get; set; } = string.Empty;
     public string Role { get; set; } = "customer";
+
+    // ✅ Optional vehicle details for customer registration
+    public string? VehicleNumber { get; set; }
+    public string? VehicleMake { get; set; }
+    public string? VehicleModel { get; set; }
+    public int? VehicleYear { get; set; }
+    public string? VehicleVin { get; set; }
 }

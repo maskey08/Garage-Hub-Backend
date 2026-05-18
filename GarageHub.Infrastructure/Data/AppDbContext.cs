@@ -1,9 +1,11 @@
 ﻿using GarageHub.Domain.Entities;
+using Microsoft.AspNetCore.Identity;
+using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore;
 
 namespace GarageHub.Infrastructure.Data;
 
-public class AppDbContext : DbContext
+public class AppDbContext : IdentityDbContext<User, IdentityRole<int>, int>
 {
     public AppDbContext(DbContextOptions<AppDbContext> options) : base(options) { }
 
@@ -25,22 +27,35 @@ public class AppDbContext : DbContext
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
-        // User
-        modelBuilder.Entity<User>(e => {
-            e.ToTable("users");
-            e.HasKey(u => u.UserId);
-            e.Property(u => u.UserId).HasColumnName("user_id");
-            e.Property(u => u.Email).HasColumnName("email");
-            e.Property(u => u.Phone).HasColumnName("phone");
-            e.Property(u => u.PasswordHash).HasColumnName("password_hash");
-            e.Property(u => u.Role).HasColumnName("role").HasDefaultValue("customer");
-            e.Property(u => u.CreatedAt).HasColumnName("created_at").HasDefaultValueSql("CURRENT_TIMESTAMP AT TIME ZONE 'UTC'").ValueGeneratedOnAdd()
-            .HasConversion(
-                v => v,
-                v => DateTime.SpecifyKind(v, DateTimeKind.Utc)
-            ); 
-            e.Property(u => u.LoyaltyPoints).HasColumnName("LoyaltyPoints");
-        });
+        base.OnModelCreating(modelBuilder);
+
+        modelBuilder.Entity<User>().ToTable("users");
+        modelBuilder.Entity<IdentityRole<int>>().ToTable("roles");
+        modelBuilder.Entity<IdentityUserRole<int>>().ToTable("user_roles");
+        modelBuilder.Entity<IdentityUserClaim<int>>().ToTable("user_claims");
+        modelBuilder.Entity<IdentityUserLogin<int>>().ToTable("user_logins");
+        modelBuilder.Entity<IdentityRoleClaim<int>>().ToTable("role_claims");
+        modelBuilder.Entity<IdentityUserToken<int>>().ToTable("user_tokens");
+
+        foreach (var entityType in modelBuilder.Model.GetEntityTypes())
+        {
+            var tableName = entityType.GetTableName();
+            if (!string.IsNullOrWhiteSpace(tableName))
+            {
+                entityType.SetTableName(ToSnakeCase(tableName));
+            }
+        }
+
+        // Configure User and relationships
+        modelBuilder.Entity<User>().Property(u => u.FirstName).HasMaxLength(50);
+        modelBuilder.Entity<User>().Property(u => u.LastName).HasMaxLength(50);
+        modelBuilder.Entity<User>().Property(u => u.Email).HasMaxLength(100);
+        modelBuilder.Entity<User>().Property(u => u.Phone).HasMaxLength(20);
+        modelBuilder.Entity<User>().Property(u => u.PasswordHashText).HasMaxLength(255);
+        modelBuilder.Entity<User>().Property(u => u.Role).HasMaxLength(20);
+        modelBuilder.Entity<User>().Property(u => u.TotalSpent).HasColumnType("numeric(12,2)");
+        modelBuilder.Entity<User>().Property(u => u.CreditBalance).HasColumnType("numeric(12,2)");
+        modelBuilder.Entity<User>().Property(u => u.CreditDueDate).HasColumnType("date");
 
         // Vehicle → User
         modelBuilder.Entity<Vehicle>(e => {
@@ -52,7 +67,7 @@ public class AppDbContext : DbContext
              .OnDelete(DeleteBehavior.Cascade);
         });
 
-        // Appointment → Customer (User)
+        // Appointment → Customer (User) and Vehicle
         modelBuilder.Entity<Appointment>(e => {
             e.ToTable("appointments");
             e.HasKey(a => a.AppointmentId);
@@ -66,7 +81,7 @@ public class AppDbContext : DbContext
              .OnDelete(DeleteBehavior.Restrict);
         });
 
-        // Review → Appointment (one-to-one)
+        // Review → Appointment and Customer
         modelBuilder.Entity<Review>(e => {
             e.ToTable("reviews");
             e.HasKey(r => r.ReviewId);
@@ -111,7 +126,7 @@ public class AppDbContext : DbContext
             e.Property(s => s.DiscountApplied).HasColumnName("discount_applied");
         });
 
-        // SalesInvoiceItem → SalesInvoice
+        // SalesInvoiceItem → SalesInvoice and Part
         modelBuilder.Entity<SalesInvoiceItem>(e => {
             e.ToTable("sales_invoice_items");
             e.HasKey(i => i.ItemId);
@@ -119,14 +134,10 @@ public class AppDbContext : DbContext
              .WithMany(s => s.Items)
              .HasForeignKey(i => i.SaleId)
              .OnDelete(DeleteBehavior.Cascade);
-
-            e.Property(i => i.ItemId).HasColumnName("item_id");
-            e.Property(i => i.SaleId).HasColumnName("sale_id");
-
-            e.Property(i => i.PartId).HasColumnName("part_id");
-
-            e.Property(i => i.Quantity).HasColumnName("quantity");
-            e.Property(i => i.UnitPrice).HasColumnName("unit_price");
+            e.HasOne(i => i.Part)
+             .WithMany()
+             .HasForeignKey(i => i.PartId)
+             .OnDelete(DeleteBehavior.Restrict);
         });
 
         // Notification → User
@@ -142,48 +153,69 @@ public class AppDbContext : DbContext
              .OnDelete(DeleteBehavior.Cascade);
         });
 
-        // Review → Appointment (one-to-one)
-        modelBuilder.Entity<Review>(e => {
-            e.Property(r => r.ReviewedAt)
-             .HasDefaultValueSql("CURRENT_TIMESTAMP AT TIME ZONE 'UTC'")
-             .ValueGeneratedOnAdd();
-        });
-
-        // PartRequest → Customer
-        modelBuilder.Entity<PartRequest>(e => {
-            e.Property(p => p.RequestedAt)
-             .HasDefaultValueSql("CURRENT_TIMESTAMP AT TIME ZONE 'UTC'")
-             .ValueGeneratedOnAdd();
-        });
-
-        // SalesInvoice → Customer
-        modelBuilder.Entity<SalesInvoice>(e => {
-            e.Property(s => s.SaleDate)
-             .HasDefaultValueSql("CURRENT_TIMESTAMP AT TIME ZONE 'UTC'")
-             .ValueGeneratedOnAdd();
-        });
-
-        // Sale
-        modelBuilder.Entity<Sale>(e => {
-            e.ToTable("sales");
-            e.HasKey(s => s.Id);
-            e.Property(s => s.SaleDate)
-             .HasColumnName("sale_date")
-             .HasDefaultValueSql("CURRENT_TIMESTAMP AT TIME ZONE 'UTC'")
-             .ValueGeneratedOnAdd();
-        });
-
-        
-
-        //parts
+        // Part
         modelBuilder.Entity<Part>(e => {
-            e.ToTable("parts");
-            e.HasKey(p => p.PartId);
-            e.Property(p => p.PartId).HasColumnName("part_id");
-            e.Property(p => p.PartName).HasColumnName("part_name");
-            e.Property(p => p.Brand).HasColumnName("brand");
-            e.Property(p => p.Price).HasColumnName("unit_price");
-            e.Property(p => p.StockQuantity).HasColumnName("stock_qty");
+            e.HasKey(p => p.Id);
         });
+
+        // Sale → Customer
+        modelBuilder.Entity<Sale>(e => {
+            e.HasKey(s => s.Id);
+            e.HasOne<User>()
+             .WithMany()
+             .HasForeignKey(s => s.CustomerId)
+             .OnDelete(DeleteBehavior.Restrict);
+        });
+
+        // SaleItem → Sale and Part
+        modelBuilder.Entity<SaleItem>(e => {
+            e.HasKey(si => si.Id);
+            e.HasOne(si => si.Sale)
+             .WithMany(s => s.SaleItems)
+             .HasForeignKey(si => si.SaleId)
+             .OnDelete(DeleteBehavior.Cascade);
+            e.HasOne<Part>()
+             .WithMany()
+             .HasForeignKey(si => si.PartId)
+             .OnDelete(DeleteBehavior.Restrict);
+        });
+
+        // Invoice → Sale
+        modelBuilder.Entity<Invoice>(e => {
+            e.HasKey(i => i.Id);
+            e.HasOne(i => i.Sale)
+             .WithMany()
+             .HasForeignKey(i => i.SaleId)
+             .OnDelete(DeleteBehavior.Cascade);
+        });
+    }
+
+    private static string ToSnakeCase(string input)
+    {
+        if (string.IsNullOrWhiteSpace(input))
+        {
+            return input;
+        }
+
+        var builder = new System.Text.StringBuilder();
+        for (var i = 0; i < input.Length; i++)
+        {
+            var c = input[i];
+            if (char.IsUpper(c))
+            {
+                if (i > 0)
+                {
+                    builder.Append('_');
+                }
+
+                builder.Append(char.ToLowerInvariant(c));
+            }
+            else
+            {
+                builder.Append(c);
+            }
+        }
+
+        return builder.ToString();
     }
 }

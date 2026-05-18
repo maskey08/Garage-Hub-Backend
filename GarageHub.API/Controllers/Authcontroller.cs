@@ -1,5 +1,6 @@
 ﻿using GarageHub.Application.DTOs.Auth;
 using GarageHub.Application.Interfaces;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
 namespace GarageHub.API.Controllers;
@@ -14,14 +15,58 @@ public class AuthController : ControllerBase
     [HttpPost("register")]
     public async Task<IActionResult> Register(RegisterDto dto)
     {
-        try { return Ok(await _auth.RegisterAsync(dto)); }
-        catch (Exception ex) { return BadRequest(new { ex.Message }); }
+        try
+        {
+            var result = await _auth.RegisterAsync(dto);
+            if (!result.Success)
+                return BadRequest(new { message = result.Message });
+            return Ok(result);
+        }
+        catch (Exception ex)
+        {
+            return BadRequest(new { message = ex.Message });
+        }
     }
 
     [HttpPost("login")]
     public async Task<IActionResult> Login(LoginDto dto)
     {
-        try { return Ok(await _auth.LoginAsync(dto)); }
-        catch (Exception ex) { return Unauthorized(new { ex.Message }); }
+        try
+        {
+            var result = await _auth.LoginAsync(dto);
+            if (!result.Success)
+                return Unauthorized(new { message = result.Message });
+            return Ok(result);
+        }
+        catch (Exception ex)
+        {
+            return Unauthorized(new { message = ex.Message });
+        }
+    }
+
+    [HttpPost("logout")]
+    [Authorize]
+    public IActionResult Logout()
+    {
+        try
+        {
+            // Clear any server-side session/cookie data if needed
+            // JWT tokens are stateless, so the client needs to delete them from localStorage/sessionStorage
+            // But we can invalidate cookies here if they exist
+            if (Request.Cookies.ContainsKey("AuthToken"))
+            {
+                Response.Cookies.Delete("AuthToken");
+            }
+            if (Request.Cookies.ContainsKey("RefreshToken"))
+            {
+                Response.Cookies.Delete("RefreshToken");
+            }
+
+            return Ok(new { message = "Logged out successfully", success = true });
+        }
+        catch (Exception ex)
+        {
+            return BadRequest(new { message = ex.Message, success = false });
+        }
     }
 }

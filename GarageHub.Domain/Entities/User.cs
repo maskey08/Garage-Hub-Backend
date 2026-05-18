@@ -1,14 +1,20 @@
+using Microsoft.AspNetCore.Identity;
 
 namespace GarageHub.Domain.Entities;
 
-public class User
+public class User : IdentityUser<int>
 {
-    public int UserId { get; set; }
-    public string Email { get; set; } = string.Empty;
+    public string FirstName { get; set; } = string.Empty;
+    public string LastName { get; set; } = string.Empty;
     public string Phone { get; set; } = string.Empty;
-    public string PasswordHash { get; set; } = string.Empty;
+    public string PasswordHashText { get; set; } = string.Empty;
     public string Role { get; set; } = "customer";
-    public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
+    public decimal TotalSpent { get; set; }
+    public decimal CreditBalance { get; set; }
+    public DateOnly? CreditDueDate { get; set; }
+    public int? ManagedBy { get; set; }
+    public int LoyaltyPoints { get; set; }
+    public DateTime CreatedAt { get; set; }
 
     public int LoyaltyPoints { get; set; } = 0;
 
@@ -18,4 +24,9 @@ public class User
     public ICollection<PartRequest> PartRequests { get; set; } = [];
     public ICollection<SalesInvoice> SalesInvoices { get; set; } = [];
     public ICollection<Notification> Notifications { get; set; } = [];
+
+    public User()
+    {
+        CreatedAt = DateTime.UtcNow;
+    }
 }

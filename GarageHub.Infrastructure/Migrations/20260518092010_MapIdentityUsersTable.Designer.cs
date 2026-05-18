@@ -3,6 +3,7 @@ using System;
 using GarageHub.Infrastructure.Data;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 
@@ -11,9 +12,11 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 namespace GarageHub.Infrastructure.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    partial class ApplicationDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260518092010_MapIdentityUsersTable")]
+    partial class MapIdentityUsersTable
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -121,38 +124,6 @@ namespace GarageHub.Infrastructure.Migrations
                     b.HasIndex("UserId");
 
                     b.ToTable("notifications");
-                });
-
-            modelBuilder.Entity("GarageHub.Domain.Entities.Notification", b =>
-                {
-                    b.Property<int>("NotificationId")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("integer");
-
-                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("NotificationId"));
-
-                    b.Property<bool>("IsRead")
-                        .HasColumnType("boolean");
-
-                    b.Property<string>("Message")
-                        .IsRequired()
-                        .HasColumnType("text");
-
-                    b.Property<DateTime>("SentAt")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<string>("Type")
-                        .IsRequired()
-                        .HasColumnType("text");
-
-                    b.Property<int>("UserId")
-                        .HasColumnType("integer");
-
-                    b.HasKey("NotificationId");
-
-                    b.HasIndex("UserId");
-
-                    b.ToTable("notifications", (string)null);
                 });
 
             modelBuilder.Entity("GarageHub.Domain.Entities.Part", b =>
@@ -264,72 +235,6 @@ namespace GarageHub.Infrastructure.Migrations
                     b.HasIndex("CustomerId");
 
                     b.ToTable("reviews");
-                });
-
-            modelBuilder.Entity("GarageHub.Domain.Entities.PartRequest", b =>
-                {
-                    b.Property<int>("RequestId")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("integer");
-
-                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("RequestId"));
-
-                    b.Property<int>("CustomerId")
-                        .HasColumnType("integer");
-
-                    b.Property<string>("Description")
-                        .IsRequired()
-                        .HasColumnType("text");
-
-                    b.Property<string>("PartName")
-                        .IsRequired()
-                        .HasColumnType("text");
-
-                    b.Property<DateTime>("RequestedAt")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<string>("Status")
-                        .IsRequired()
-                        .HasColumnType("text");
-
-                    b.HasKey("RequestId");
-
-                    b.HasIndex("CustomerId");
-
-                    b.ToTable("part_requests", (string)null);
-                });
-
-            modelBuilder.Entity("GarageHub.Domain.Entities.Review", b =>
-                {
-                    b.Property<int>("ReviewId")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("integer");
-
-                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("ReviewId"));
-
-                    b.Property<int>("AppointmentId")
-                        .HasColumnType("integer");
-
-                    b.Property<string>("Comment")
-                        .HasColumnType("text");
-
-                    b.Property<int>("CustomerId")
-                        .HasColumnType("integer");
-
-                    b.Property<int>("Rating")
-                        .HasColumnType("integer");
-
-                    b.Property<DateTime>("ReviewedAt")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.HasKey("ReviewId");
-
-                    b.HasIndex("AppointmentId")
-                        .IsUnique();
-
-                    b.HasIndex("CustomerId");
-
-                    b.ToTable("reviews", (string)null);
                 });
 
             modelBuilder.Entity("GarageHub.Domain.Entities.Sale", b =>
@@ -747,166 +652,6 @@ namespace GarageHub.Infrastructure.Migrations
                     b.HasKey("UserId", "LoginProvider", "Name");
 
                     b.ToTable("user_tokens", (string)null);
-                });
-
-            modelBuilder.Entity("GarageHub.Domain.Entities.Appointment", b =>
-                {
-                    b.HasOne("GarageHub.Domain.Entities.User", "Customer")
-                        .WithMany("Appointments")
-                        .HasForeignKey("CustomerId")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
-
-                    b.HasOne("GarageHub.Domain.Entities.Vehicle", "Vehicle")
-                        .WithMany("Appointments")
-                        .HasForeignKey("VehicleId")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
-
-                    b.Navigation("Customer");
-
-                    b.Navigation("Vehicle");
-                });
-
-            modelBuilder.Entity("GarageHub.Domain.Entities.SalesInvoice", b =>
-                {
-                    b.Property<int>("SaleId")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("integer");
-
-                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("SaleId"));
-
-                    b.Property<bool>("CreditUsed")
-                        .HasColumnType("boolean");
-
-                    b.Property<int>("CustomerId")
-                        .HasColumnType("integer");
-
-                    b.Property<decimal>("DiscountApplied")
-                        .HasColumnType("real");
-
-                    b.Property<string>("PaymentStatus")
-                        .IsRequired()
-                        .HasColumnType("text");
-
-                    b.Property<DateTime>("SaleDate")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<int?>("StaffId")
-                        .HasColumnType("integer");
-
-                    b.Property<decimal>("Subtotal")
-                        .HasColumnType("real");
-
-                    b.Property<decimal>("TotalAmount")
-                        .HasColumnType("real");
-
-                    b.HasKey("SaleId");
-
-                    b.HasIndex("CustomerId");
-
-                    b.ToTable("sales_invoices", (string)null);
-                });
-
-            modelBuilder.Entity("GarageHub.Domain.Entities.SalesInvoiceItem", b =>
-                {
-                    b.Property<int>("ItemId")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("integer");
-
-                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("ItemId"));
-
-                    b.Property<int>("PartId")
-                        .HasColumnType("integer");
-
-                    b.Property<int>("Quantity")
-                        .HasColumnType("integer");
-
-                    b.Property<int>("SaleId")
-                        .HasColumnType("integer");
-
-                    b.Property<decimal>("UnitPrice")
-                        .HasColumnType("real");
-
-                    b.HasKey("ItemId");
-
-                    b.HasIndex("SaleId");
-
-                    b.ToTable("sales_invoice_items", (string)null);
-                });
-
-            modelBuilder.Entity("GarageHub.Domain.Entities.User", b =>
-                {
-                    b.Property<int>("UserId")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("integer");
-
-                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("UserId"));
-
-                    b.Property<DateTime>("CreatedAt")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<string>("Email")
-                        .IsRequired()
-                        .HasColumnType("text");
-
-                    b.Property<int>("LoyaltyPoints")
-                        .HasColumnType("integer");
-
-                    b.Property<string>("PasswordHash")
-                        .IsRequired()
-                        .HasColumnType("text");
-
-                    b.Property<string>("Phone")
-                        .IsRequired()
-                        .HasColumnType("text");
-
-                    b.Property<string>("Role")
-                        .IsRequired()
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("text")
-                        .HasDefaultValue("customer");
-
-                    b.HasKey("UserId");
-
-                    b.ToTable("users", (string)null);
-                });
-
-            modelBuilder.Entity("GarageHub.Domain.Entities.Vehicle", b =>
-                {
-                    b.Property<int>("VehicleId")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("integer");
-
-                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("VehicleId"));
-
-                    b.Property<string>("Make")
-                        .IsRequired()
-                        .HasColumnType("text");
-
-                    b.Property<string>("Model")
-                        .IsRequired()
-                        .HasColumnType("text");
-
-                    b.Property<int>("UserId")
-                        .HasColumnType("integer");
-
-                    b.Property<string>("VehicleNumber")
-                        .IsRequired()
-                        .HasColumnType("text");
-
-                    b.Property<string>("Vin")
-                        .IsRequired()
-                        .HasColumnType("text");
-
-                    b.Property<int>("Year")
-                        .HasColumnType("integer");
-
-                    b.HasKey("VehicleId");
-
-                    b.HasIndex("UserId");
-
-                    b.ToTable("vehicles", (string)null);
                 });
 
             modelBuilder.Entity("GarageHub.Domain.Entities.Appointment", b =>
