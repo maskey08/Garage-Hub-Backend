@@ -1,6 +1,7 @@
 using GarageHub.Application.DTOs.Auth;
 using GarageHub.Application.Interfaces;
 using GarageHub.Domain.Entities;
+using GarageHub.Infrastructure.Data;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.Extensions.Configuration;
 using Microsoft.IdentityModel.Tokens;
@@ -14,11 +15,15 @@ public class AuthService : IAuthService
 {
     private readonly UserManager<User> _userManager;
     private readonly IConfiguration _configuration;
+    private readonly IUserProfileService _userProfileService;
+    private readonly AppDbContext _db;
 
-    public AuthService(UserManager<User> userManager, IConfiguration configuration)
+    public AuthService(UserManager<User> userManager, IConfiguration configuration, IUserProfileService userProfileService, AppDbContext db)
     {
         _configuration = configuration;
         _userManager = userManager;
+        _userProfileService = userProfileService;
+        _db = db;
     }
 
     public async Task<AuthResponseDto> RegisterAsync(RegisterDto dto)
@@ -44,6 +49,25 @@ public class AuthService : IAuthService
 
         var role = !string.IsNullOrEmpty(dto.Role) ? dto.Role : "customer";
         await _userManager.AddToRoleAsync(user, role);
+
+        // ✅ Sync to custom users table
+        await _userProfileService.CreateUserProfileAsync(user, role);
+
+        // ✅ If customer registration includes vehicle details, save them
+        if (role == "customer" && !string.IsNullOrWhiteSpace(dto.VehicleNumber))
+        {
+            var vehicle = new Vehicle
+            {
+                UserId = user.Id,
+                VehicleNumber = dto.VehicleNumber,
+                Make = dto.VehicleMake ?? string.Empty,
+                Model = dto.VehicleModel ?? string.Empty,
+                Year = dto.VehicleYear ?? DateTime.Now.Year,
+                Vin = dto.VehicleVin ?? string.Empty
+            };
+            _db.Vehicles.Add(vehicle);
+            await _db.SaveChangesAsync();
+        }
 
         return new AuthResponseDto
         {

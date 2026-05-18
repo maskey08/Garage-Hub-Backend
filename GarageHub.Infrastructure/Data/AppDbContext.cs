@@ -28,6 +28,11 @@ public class AppDbContext : IdentityDbContext<User, IdentityRole<int>, int>
     {
         base.OnModelCreating(modelBuilder);
 
+        // Configure User and relationships
+        modelBuilder.Entity<User>().Property(u => u.FirstName).HasMaxLength(100);
+        modelBuilder.Entity<User>().Property(u => u.LastName).HasMaxLength(100);
+        modelBuilder.Entity<User>().Property(u => u.Phone).HasMaxLength(20);
+
         // Vehicle → User
         modelBuilder.Entity<Vehicle>(e => {
             e.HasKey(v => v.VehicleId);
@@ -37,7 +42,7 @@ public class AppDbContext : IdentityDbContext<User, IdentityRole<int>, int>
              .OnDelete(DeleteBehavior.Cascade);
         });
 
-        // Appointment → Customer (User)
+        // Appointment → Customer (User) and Vehicle
         modelBuilder.Entity<Appointment>(e => {
             e.HasKey(a => a.AppointmentId);
             e.HasOne(a => a.Customer)
@@ -50,7 +55,7 @@ public class AppDbContext : IdentityDbContext<User, IdentityRole<int>, int>
              .OnDelete(DeleteBehavior.Restrict);
         });
 
-        // Review → Appointment (one-to-one)
+        // Review → Appointment and Customer
         modelBuilder.Entity<Review>(e => {
             e.HasKey(r => r.ReviewId);
             e.HasOne(r => r.Appointment)
@@ -81,7 +86,7 @@ public class AppDbContext : IdentityDbContext<User, IdentityRole<int>, int>
              .OnDelete(DeleteBehavior.Restrict);
         });
 
-        // SalesInvoiceItem → SalesInvoice
+        // SalesInvoiceItem → SalesInvoice and Part
         modelBuilder.Entity<SalesInvoiceItem>(e => {
             e.HasKey(i => i.ItemId);
             e.HasOne(i => i.SalesInvoice)
@@ -106,27 +111,18 @@ public class AppDbContext : IdentityDbContext<User, IdentityRole<int>, int>
         // Part
         modelBuilder.Entity<Part>(e => {
             e.HasKey(p => p.Id);
-            e.Property(p => p.PartName).IsRequired();
-            e.Property(p => p.PartNumber).IsRequired();
-            e.Property(p => p.Category).IsRequired();
-            e.Property(p => p.Brand).IsRequired();
-            e.Property(p => p.Price).HasPrecision(10, 2);
-            e.Property(p => p.LowStockThreshold).HasDefaultValue(0);
         });
 
-        // Sale → Customer (User)
+        // Sale → Customer
         modelBuilder.Entity<Sale>(e => {
             e.HasKey(s => s.Id);
             e.HasOne<User>()
              .WithMany()
              .HasForeignKey(s => s.CustomerId)
              .OnDelete(DeleteBehavior.Restrict);
-            e.Property(s => s.SubTotal).HasPrecision(10, 2);
-            e.Property(s => s.TaxAmount).HasPrecision(10, 2);
-            e.Property(s => s.GrandTotal).HasPrecision(10, 2);
         });
 
-        // SaleItem → Sale, Part
+        // SaleItem → Sale and Part
         modelBuilder.Entity<SaleItem>(e => {
             e.HasKey(si => si.Id);
             e.HasOne(si => si.Sale)
@@ -137,8 +133,6 @@ public class AppDbContext : IdentityDbContext<User, IdentityRole<int>, int>
              .WithMany()
              .HasForeignKey(si => si.PartId)
              .OnDelete(DeleteBehavior.Restrict);
-            e.Property(si => si.UnitPrice).HasPrecision(10, 2);
-            e.Property(si => si.TotalPrice).HasPrecision(10, 2);
         });
 
         // Invoice → Sale
@@ -148,7 +142,6 @@ public class AppDbContext : IdentityDbContext<User, IdentityRole<int>, int>
              .WithMany()
              .HasForeignKey(i => i.SaleId)
              .OnDelete(DeleteBehavior.Cascade);
-            e.Property(i => i.InvoiceNumber).IsRequired();
         });
     }
 }

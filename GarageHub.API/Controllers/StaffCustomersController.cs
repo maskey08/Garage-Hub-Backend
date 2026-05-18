@@ -18,6 +18,40 @@ public class StaffCustomersController : ControllerBase
     }
 
     /// <summary>
+    /// Get all customers (staff can view all customers)
+    /// </summary>
+    [HttpGet]
+    public async Task<IActionResult> GetAllCustomers()
+    {
+        try
+        {
+            var customers = await _customerService.GetAllCustomersAsync();
+            return Ok(customers);
+        }
+        catch (Exception ex)
+        {
+            return BadRequest(new { message = ex.Message });
+        }
+    }
+
+    /// <summary>
+    /// Search customers by name, email, or phone
+    /// </summary>
+    [HttpGet("search")]
+    public async Task<IActionResult> SearchCustomers([FromQuery] string searchTerm)
+    {
+        try
+        {
+            var customers = await _customerService.SearchCustomersAsync(searchTerm);
+            return Ok(customers);
+        }
+        catch (Exception ex)
+        {
+            return BadRequest(new { message = ex.Message });
+        }
+    }
+
+    /// <summary>
     /// Create a new customer (staff member registering a new customer)
     /// </summary>
     [HttpPost]

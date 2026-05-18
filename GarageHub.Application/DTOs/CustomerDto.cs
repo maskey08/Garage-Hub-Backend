@@ -46,4 +46,30 @@ namespace GarageHub.Application.DTOs
         public string SearchTerm { get; set; } = string.Empty;
         public string SearchBy { get; set; } = string.Empty;
     }
+
+    public class CustomerDashboardDto
+    {
+        public int UserId { get; set; }
+        public string FullName { get; set; } = string.Empty;
+        public string Email { get; set; } = string.Empty;
+        public int TotalVehicles { get; set; }
+        public int TotalAppointments { get; set; }
+        public int PendingAppointments { get; set; }
+        public int CompletedAppointments { get; set; }
+        public decimal TotalSpent { get; set; }
+        public int TotalPurchases { get; set; }
+        public int PendingPartRequests { get; set; }
+        public List<VehicleDto> Vehicles { get; set; } = new();
+        public List<AppointmentSummaryDto> RecentAppointments { get; set; } = new();
+        public List<PurchaseSummaryDto> RecentPurchases { get; set; } = new();
+    }
+
+    public class AppointmentSummaryDto
+    {
+        public int Id { get; set; }
+        public DateTime ScheduledDate { get; set; }
+        public string Status { get; set; } = string.Empty;
+        public string ServiceType { get; set; } = string.Empty;
+        public string Notes { get; set; } = string.Empty;
+    }
 }

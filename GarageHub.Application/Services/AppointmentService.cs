@@ -11,7 +11,7 @@ public class AppointmentService : IAppointmentService
     private readonly AppDbContext _db;
     public AppointmentService(AppDbContext db) => _db = db;
 
-    public async Task<Appointment> BookAsync(int customerId, AppointmentCreateDto dto)
+    public async Task<AppointmentResponseDto> BookAsync(int customerId, AppointmentCreateDto dto)
     {
         var appointment = new Appointment
         {
@@ -24,15 +24,44 @@ public class AppointmentService : IAppointmentService
         };
         _db.Appointments.Add(appointment);
         await _db.SaveChangesAsync();
-        return appointment;
+
+        // Get the vehicle info
+        var vehicle = await _db.Vehicles.FindAsync(dto.VehicleId);
+        var vehicleInfo = vehicle != null ? $"{vehicle.Make} {vehicle.Model} ({vehicle.VehicleNumber})" : "";
+
+        return new AppointmentResponseDto
+        {
+            AppointmentId = appointment.AppointmentId,
+            CustomerId = appointment.CustomerId,
+            VehicleId = appointment.VehicleId,
+            VehicleInfo = vehicleInfo,
+            ScheduledAt = appointment.ScheduledAt,
+            ServiceType = appointment.ServiceType,
+            Status = appointment.Status,
+            Notes = appointment.Notes
+        };
     }
 
-    public async Task<IEnumerable<Appointment>> GetByCustomerAsync(int customerId)
-        => await _db.Appointments
+    public async Task<IEnumerable<AppointmentResponseDto>> GetByCustomerAsync(int customerId)
+    {
+        var appointments = await _db.Appointments
             .Include(a => a.Vehicle)
             .Where(a => a.CustomerId == customerId)
             .OrderByDescending(a => a.ScheduledAt)
             .ToListAsync();
+
+        return appointments.Select(a => new AppointmentResponseDto
+        {
+            AppointmentId = a.AppointmentId,
+            CustomerId = a.CustomerId,
+            VehicleId = a.VehicleId,
+            VehicleInfo = a.Vehicle != null ? $"{a.Vehicle.Make} {a.Vehicle.Model} ({a.Vehicle.VehicleNumber})" : "",
+            ScheduledAt = a.ScheduledAt,
+            ServiceType = a.ServiceType,
+            Status = a.Status,
+            Notes = a.Notes
+        });
+    }
 
     public async Task<bool> CancelAsync(int appointmentId, int customerId)
     {

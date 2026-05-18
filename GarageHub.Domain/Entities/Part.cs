@@ -7,10 +7,9 @@ public class Part
     public string Brand { get; set; } = string.Empty;
     public decimal Price { get; set; }
     public int StockQuantity { get; set; }
-
-    // These will be added via migration below
     public string PartNumber { get; set; } = string.Empty;
     public string Category { get; set; } = string.Empty;
-    public int LowStockThreshold { get; set; } = 10;
     public int? VendorId { get; set; }
+    public string Description { get; set; } = string.Empty;
+    public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
 }

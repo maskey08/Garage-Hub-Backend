@@ -7,7 +7,6 @@ namespace GarageHub.API.Controllers;
 
 [ApiController]
 [Route("api/[controller]")]
-[Authorize(Roles = "admin")]
 public class StaffController : ControllerBase
 {
     private readonly IStaffService _staffService;
@@ -17,7 +16,11 @@ public class StaffController : ControllerBase
         _staffService = staffService;
     }
 
+    /// <summary>
+    /// Get all staff members (admin and staff can access)
+    /// </summary>
     [HttpGet]
+    [Authorize(Roles = "admin,staff")]
     public async Task<IActionResult> GetAllStaff()
     {
         try
@@ -31,7 +34,29 @@ public class StaffController : ControllerBase
         }
     }
 
+    /// <summary>
+    /// Search staff by name, email, or phone
+    /// </summary>
+    [HttpGet("search")]
+    [Authorize(Roles = "admin,staff")]
+    public async Task<IActionResult> SearchStaff([FromQuery] string searchTerm)
+    {
+        try
+        {
+            var staff = await _staffService.SearchStaffAsync(searchTerm);
+            return Ok(staff);
+        }
+        catch (Exception ex)
+        {
+            return BadRequest(new { message = ex.Message });
+        }
+    }
+
+    /// <summary>
+    /// Add a new staff member (admin only)
+    /// </summary>
     [HttpPost]
+    [Authorize(Roles = "admin")]
     public async Task<IActionResult> AddStaff([FromBody] AddStaffDto dto)
     {
         try
@@ -45,7 +70,11 @@ public class StaffController : ControllerBase
         }
     }
 
+    /// <summary>
+    /// Update staff member (admin only)
+    /// </summary>
     [HttpPut("{id}")]
+    [Authorize(Roles = "admin")]
     public async Task<IActionResult> UpdateStaff(int id, [FromBody] UpdateStaffDto dto)
     {
         try
@@ -59,7 +88,11 @@ public class StaffController : ControllerBase
         }
     }
 
+    /// <summary>
+    /// Delete staff member (admin only)
+    /// </summary>
     [HttpDelete("{id}")]
+    [Authorize(Roles = "admin")]
     public async Task<IActionResult> DeleteStaff(int id)
     {
         try

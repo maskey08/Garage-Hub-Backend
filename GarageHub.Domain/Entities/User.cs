@@ -7,7 +7,7 @@ public class User : IdentityUser<int>
     public string FirstName { get; set; } = string.Empty;
     public string LastName { get; set; } = string.Empty;
     public string Phone { get; set; } = string.Empty;
-    public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
+    public DateTime CreatedAt { get; set; }
 
     public ICollection<Vehicle> Vehicles { get; set; } = [];
     public ICollection<Appointment> Appointments { get; set; } = [];
@@ -15,4 +15,9 @@ public class User : IdentityUser<int>
     public ICollection<PartRequest> PartRequests { get; set; } = [];
     public ICollection<SalesInvoice> SalesInvoices { get; set; } = [];
     public ICollection<Notification> Notifications { get; set; } = [];
+
+    public User()
+    {
+        CreatedAt = DateTime.UtcNow;
+    }
 }

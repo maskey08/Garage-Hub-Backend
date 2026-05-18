@@ -71,7 +71,7 @@ public class PartService : IPartService
             Brand = p.Brand,
             Price = p.Price,
             Quantity = p.StockQuantity,
-            LowStockThreshold = p.LowStockThreshold,
+            LowStockThreshold = 10,
             Category = p.Category
         }).ToListAsync();
     }
@@ -85,7 +85,6 @@ public class PartService : IPartService
             Category = dto.Category,
             Price = dto.Price,
             StockQuantity = dto.Quantity,
-            LowStockThreshold = dto.LowStockThreshold
         };
 
         _dbContext.Parts.Add(part);
@@ -106,7 +105,6 @@ public class PartService : IPartService
         part.Category = dto.Category ?? part.Category;
         part.Price = dto.Price ?? part.Price;
         part.StockQuantity = dto.Quantity ?? part.StockQuantity;
-        part.LowStockThreshold = dto.LowStockThreshold ?? part.LowStockThreshold;
 
         await _dbContext.SaveChangesAsync();
 
@@ -128,7 +126,7 @@ public class PartService : IPartService
     {
         var status = part.StockQuantity <= 0
             ? "out_of_stock"
-            : part.StockQuantity <= part.LowStockThreshold
+            : part.StockQuantity <= 10
                 ? "low_stock"
                 : "in_stock";
 
@@ -142,7 +140,7 @@ public class PartService : IPartService
             Price = part.Price,
             Quantity = part.StockQuantity,
             Status = status,
-            LowStockThreshold = part.LowStockThreshold
+            LowStockThreshold = 10
         };
     }
 }

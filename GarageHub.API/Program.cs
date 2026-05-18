@@ -35,6 +35,7 @@ builder.Services.AddScoped<ICustomerService, CustomerService>();
 builder.Services.AddScoped<IStaffService, StaffService>();
 builder.Services.AddScoped<IDashboardService, DashboardService>();
 builder.Services.AddScoped<IPartService, PartService>();
+builder.Services.AddScoped<IUserProfileService, UserProfileService>();
 
 // JWT
 var jwtKey = builder.Configuration["Jwt:Key"] ?? "GarageHubSecretKey12345678901234567890";
@@ -133,6 +134,8 @@ async Task SeedAdminAsync(WebApplication webApp)
         .GetRequiredService<RoleManager<IdentityRole<int>>>();
     var userManager = scope.ServiceProvider
         .GetRequiredService<UserManager<User>>();
+    var userProfileService = scope.ServiceProvider
+        .GetRequiredService<IUserProfileService>();
 
     // Create roles
     foreach (var role in new[] { "admin", "staff", "customer" })
@@ -177,11 +180,35 @@ async Task SeedAdminAsync(WebApplication webApp)
             Debug.WriteLine(roleResult.Succeeded
                 ? "✅ Admin created + role assigned"
                 : "❌ Admin created but role assignment failed");
+
+            // Sync admin to the custom 'users' table
+            await userProfileService.CreateUserProfileAsync(admin, "admin");
         }
     }
     else
     {
         Debug.WriteLine($"ℹ️  Admin user already exists (Id: {adminUser.Id})");
+
+        // ✅ Always check and fix the FirstName and LastName
+        bool needsUpdate = false;
+        if (string.IsNullOrWhiteSpace(adminUser.FirstName) || adminUser.FirstName != "Admin")
+        {
+            adminUser.FirstName = "Admin";
+            needsUpdate = true;
+        }
+        if (string.IsNullOrWhiteSpace(adminUser.LastName) || adminUser.LastName != "User")
+        {
+            adminUser.LastName = "User";
+            needsUpdate = true;
+        }
+
+        if (needsUpdate)
+        {
+            var updateResult = await userManager.UpdateAsync(adminUser);
+            Debug.WriteLine(updateResult.Succeeded
+                ? "✅ Admin FirstName/LastName updated"
+                : $"❌ Failed to update admin: {string.Join(", ", updateResult.Errors.Select(e => e.Description))}");
+        }
 
         // ✅ Always check and fix the role
         var roles = await userManager.GetRolesAsync(adminUser);
@@ -198,5 +225,77 @@ async Task SeedAdminAsync(WebApplication webApp)
         {
             Debug.WriteLine("✅ Admin already has 'admin' role — all good");
         }
+
+        // ✅ Sync admin profile to the custom 'users' table
+        await userProfileService.UpdateUserProfileAsync(adminUser, "admin");
     }
 }
+
+// ─── Diagnostic Endpoints ─────────────────────────────────────
+// These are public endpoints for debugging and checking the state of the application.
+// They should be secured or removed in the production environment.
+
+app.MapGet("/api/diagnostics/db-status", async (AppDbContext db) =>
+{
+    var connected = await db.Database.CanConnectAsync();
+    var userCount = await db.Users.CountAsync();
+    var roleCount = await db.Roles.CountAsync();
+    var appointmentCount = await db.Appointments.CountAsync();
+    var partRequestCount = await db.PartRequests.CountAsync();
+    var reviewCount = await db.Reviews.CountAsync();
+
+    return Results.Ok(new
+    {
+        Database = connected ? "Connected" : "Disconnected",
+        UserCount = userCount,
+        RoleCount = roleCount,
+        AppointmentCount = appointmentCount,
+        PartRequestCount = partRequestCount,
+        ReviewCount = reviewCount
+    });
+});
+
+app.MapGet("/api/diagnostics/users", async (UserManager<User> userManager) =>
+{
+    var users = userManager.Users
+        .Select(u => new { u.Id, u.Email, u.UserName, u.FirstName, u.LastName, u.Phone, u.CreatedAt })
+        .ToList();
+
+    return Results.Ok(users);
+});
+
+app.MapGet("/api/diagnostics/roles", async (RoleManager<IdentityRole<int>> roleManager) =>
+{
+    var roles = roleManager.Roles
+        .Select(r => new { r.Id, r.Name })
+        .ToList();
+
+    return Results.Ok(roles);
+});
+
+app.MapGet("/api/diagnostics/user-roles", async (AppDbContext db) =>
+{
+    var users = await db.Users.ToListAsync();
+    var userRolesList = new List<object>();
+
+    foreach (var user in users)
+    {
+        var userRoles = await db.UserRoles
+            .Where(ur => ur.UserId == user.Id)
+            .Join(db.Roles, ur => ur.RoleId, r => r.Id, (ur, r) => new
+            {
+                UserId = user.Id,
+                UserEmail = user.Email,
+                RoleId = r.Id,
+                RoleName = r.Name
+            })
+            .ToListAsync();
+
+        if (userRoles.Any())
+        {
+            userRolesList.AddRange(userRoles);
+        }
+    }
+
+    return Results.Ok(userRolesList);
+});

@@ -11,11 +11,13 @@ public class StaffService : IStaffService
 {
     private readonly AppDbContext _db;
     private readonly UserManager<User> _userManager;
+    private readonly IUserProfileService _userProfileService;
 
-    public StaffService(AppDbContext db, UserManager<User> userManager)
+    public StaffService(AppDbContext db, UserManager<User> userManager, IUserProfileService userProfileService)
     {
         _db = db;
         _userManager = userManager;
+        _userProfileService = userProfileService;
     }
 
     public async Task<IEnumerable<StaffDto>> GetAllStaffAsync()
@@ -64,6 +66,9 @@ public class StaffService : IStaffService
         }
 
         await _userManager.AddToRoleAsync(user, "staff");
+
+        // Sync user data to the custom 'users' table
+        await _userProfileService.CreateUserProfileAsync(user, "staff");
 
         return new StaffDto
         {
@@ -127,5 +132,32 @@ public class StaffService : IStaffService
             await _userManager.RemoveFromRoleAsync(user, "staff");
         }
         return true;
+    }
+
+    public async Task<IEnumerable<StaffDto>> SearchStaffAsync(string searchTerm)
+    {
+        if (string.IsNullOrWhiteSpace(searchTerm))
+            return await GetAllStaffAsync();
+
+        var searchLower = searchTerm.ToLower();
+        var staffUsers = await _db.Users
+            .Where(u => _db.UserRoles
+                .Any(ur => ur.UserId == u.Id &&
+                    _db.Roles.Any(r => r.Id == ur.RoleId && (r.Name == "staff" || r.Name == "admin")))
+                && (u.FirstName.ToLower().Contains(searchLower) ||
+                    u.LastName.ToLower().Contains(searchLower) ||
+                    u.Email!.ToLower().Contains(searchLower) ||
+                    u.Phone.ToLower().Contains(searchLower)))
+            .ToListAsync();
+
+        return staffUsers.Select(u => new StaffDto
+        {
+            Id = u.Id,
+            Name = $"{u.FirstName} {u.LastName}".Trim(),
+            Email = u.Email ?? "",
+            Phone = u.Phone ?? "",
+            Role = "staff",
+            Status = "active"
+        });
     }
 }
