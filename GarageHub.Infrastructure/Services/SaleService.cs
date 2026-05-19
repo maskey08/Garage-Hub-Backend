@@ -61,7 +61,7 @@ namespace GarageHub.Infrastructure.Services
                     {
                         PartId = item.PartId,
                         Quantity = item.Quantity,
-                        UnitPrice = part.Price,
+                        UnitPrice = (float)part.Price,
                     });
                 }
 

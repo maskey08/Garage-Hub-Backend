@@ -18,7 +18,7 @@ namespace GarageHub.Infrastructure.Repositories
         {
             return await _context.Parts
                 .AsNoTracking()
-                .FirstOrDefaultAsync(p => p.PartId == partId);
+                .FirstOrDefaultAsync(p => p.Id == partId);
         }
 
         public async Task UpdatePartAsync(Part part)

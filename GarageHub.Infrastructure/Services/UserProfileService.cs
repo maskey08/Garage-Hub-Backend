@@ -2,7 +2,7 @@ using GarageHub.Domain.Entities;
 using GarageHub.Infrastructure.Data;
 using Microsoft.EntityFrameworkCore;
 
-namespace GarageHub.Application.Services;
+namespace GarageHub.Infrastructure.Services;
 
 /// <summary>
 /// Service to manage user profile data (now directly in User entity)
@@ -31,7 +31,7 @@ public class UserProfileService : IUserProfileService
     {
         // User entity already has all profile data via User properties
         // Just update the user if needed
-        var user = await _db.Users.FindAsync(identityUser.Id);
+        var user = await _db.Users.FindAsync(identityUser.UserId);
 
         if (user != null)
         {
@@ -51,7 +51,7 @@ public class UserProfileService : IUserProfileService
     /// </summary>
     public async Task UpdateUserProfileAsync(User identityUser, string role)
     {
-        var user = await _db.Users.FindAsync(identityUser.Id);
+        var user = await _db.Users.FindAsync(identityUser.UserId);
 
         if (user == null)
         {
@@ -88,6 +88,6 @@ public class UserProfileService : IUserProfileService
     /// </summary>
     public async Task<User?> GetUserProfileAsync(int userId)
     {
-        return await _db.Users.FirstOrDefaultAsync(u => u.Id == userId);
+        return await _db.Users.FirstOrDefaultAsync(u => u.UserId == userId);
     }
 }

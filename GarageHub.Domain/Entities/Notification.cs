@@ -1,6 +1,4 @@
-using System;
-using System.Collections.Generic;
-using System.Text;
+using GarageHub.Domain.Enums;
 
 namespace GarageHub.Domain.Entities;
 
@@ -8,11 +6,11 @@ public class Notification
 {
     public int NotificationId { get; set; }
     public int UserId { get; set; }
-    public string Type { get; set; } = string.Empty; // low_stock | credit_reminder
+    public string Title { get; set; } = string.Empty;
     public string Message { get; set; } = string.Empty;
-        public NotificationType Type { get; set; }
-    public bool IsRead { get; set; } = false;
-    public DateTime SentAt { get; set; }
+    public NotificationType Type { get; set; }
+    public bool IsRead { get; set; }
+    public DateTime CreatedAt { get; set; }
 
     public User User { get; set; } = null!;
 }

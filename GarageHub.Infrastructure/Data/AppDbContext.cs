@@ -1,15 +1,13 @@
 ﻿using GarageHub.Domain.Entities;
-using Microsoft.AspNetCore.Identity;
-using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore;
 
 namespace GarageHub.Infrastructure.Data;
 
-public class AppDbContext : IdentityDbContext<User, IdentityRole<int>, int>
+public class AppDbContext : DbContext
 {
     public AppDbContext(DbContextOptions<AppDbContext> options) : base(options) { }
 
-    public override DbSet<User> Users { get => base.Users; set => base.Users = value; }
+    public DbSet<User> Users => Set<User>();
     public DbSet<Vehicle> Vehicles => Set<Vehicle>();
     public DbSet<Appointment> Appointments => Set<Appointment>();
     public DbSet<PartRequest> PartRequests => Set<PartRequest>();
@@ -19,10 +17,11 @@ public class AppDbContext : IdentityDbContext<User, IdentityRole<int>, int>
     public DbSet<Notification> Notifications => Set<Notification>();
     public DbSet<Customer> Customers => Set<Customer>();
     public DbSet<Part> Parts { get; set; }
-
     public DbSet<Sale> Sales { get; set; }
-
     public DbSet<SaleItem> SaleItems { get; set; }
+    public DbSet<Vendor> Vendors { get; set; }
+    public DbSet<PurchaseInvoice> PurchaseInvoices { get; set; }
+    public DbSet<PurchaseInvoiceItem> PurchaseInvoiceItems { get; set; }
 
 
 
@@ -31,12 +30,6 @@ public class AppDbContext : IdentityDbContext<User, IdentityRole<int>, int>
         base.OnModelCreating(modelBuilder);
 
         modelBuilder.Entity<User>().ToTable("users");
-        modelBuilder.Entity<IdentityRole<int>>().ToTable("roles");
-        modelBuilder.Entity<IdentityUserRole<int>>().ToTable("user_roles");
-        modelBuilder.Entity<IdentityUserClaim<int>>().ToTable("user_claims");
-        modelBuilder.Entity<IdentityUserLogin<int>>().ToTable("user_logins");
-        modelBuilder.Entity<IdentityRoleClaim<int>>().ToTable("role_claims");
-        modelBuilder.Entity<IdentityUserToken<int>>().ToTable("user_tokens");
 
         foreach (var entityType in modelBuilder.Model.GetEntityTypes())
         {
@@ -145,7 +138,7 @@ public class AppDbContext : IdentityDbContext<User, IdentityRole<int>, int>
         modelBuilder.Entity<Notification>(e => {
             e.ToTable("notifications");
             e.HasKey(n => n.NotificationId);
-            e.Property(n => n.SentAt)
+            e.Property(n => n.CreatedAt)
              .HasDefaultValueSql("CURRENT_TIMESTAMP AT TIME ZONE 'UTC'")
              .ValueGeneratedOnAdd();
             e.HasOne(n => n.User)
@@ -188,6 +181,36 @@ public class AppDbContext : IdentityDbContext<User, IdentityRole<int>, int>
              .WithMany()
              .HasForeignKey(i => i.SaleId)
              .OnDelete(DeleteBehavior.Cascade);
+        });
+
+        // Vendor
+        modelBuilder.Entity<Vendor>(e => {
+            e.HasKey(v => v.Id);
+            e.ToTable("vendors");
+        });
+
+        // PurchaseInvoice → Vendor
+        modelBuilder.Entity<PurchaseInvoice>(e => {
+            e.HasKey(p => p.Id);
+            e.ToTable("purchase_invoices");
+            e.HasOne<Vendor>()
+             .WithMany()
+             .HasForeignKey(p => p.VendorId)
+             .OnDelete(DeleteBehavior.Restrict);
+        });
+
+        // PurchaseInvoiceItem → PurchaseInvoice and Part
+        modelBuilder.Entity<PurchaseInvoiceItem>(e => {
+            e.HasKey(p => p.Id);
+            e.ToTable("purchase_invoice_items");
+            e.HasOne(p => p.PurchaseInvoice)
+             .WithMany(pi => pi.Items)
+             .HasForeignKey(p => p.PurchaseInvoiceId)
+             .OnDelete(DeleteBehavior.Cascade);
+            e.HasOne<Part>()
+             .WithMany()
+             .HasForeignKey(p => p.PartId)
+             .OnDelete(DeleteBehavior.Restrict);
         });
     }
 

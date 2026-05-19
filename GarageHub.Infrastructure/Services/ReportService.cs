@@ -2,7 +2,7 @@
 using GarageHub.Application.Interfaces;
 using GarageHub.Infrastructure.Repositories;
 
-namespace GarageHub.Application.Services
+namespace GarageHub.Infrastructure.Services
 {
     public class ReportService : IReportService
     {
@@ -121,7 +121,7 @@ namespace GarageHub.Application.Services
 
             return topCustomers.Select(c => new TopCustomerDto
             {
-                CustomerId = c.Id,
+                CustomerId = c.UserId,
                 CustomerName = $"{c.FirstName} {c.LastName}".Trim(),
                 Phone = c.Phone,
                 Email = c.Email,

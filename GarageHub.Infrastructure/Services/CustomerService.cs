@@ -2,7 +2,6 @@ using GarageHub.Application.DTOs;
 using GarageHub.Application.Interfaces;
 using GarageHub.Domain.Entities;
 using GarageHub.Infrastructure.Data;
-using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using System.Text;
 
@@ -11,22 +10,20 @@ namespace GarageHub.Infrastructure.Services;
 public class CustomerService : ICustomerService
 {
     private readonly AppDbContext _db;
-    private readonly UserManager<User> _userManager;
     private readonly IUserProfileService _userProfileService;
 
-    public CustomerService(AppDbContext db, UserManager<User> userManager, IUserProfileService userProfileService)
+    public CustomerService(AppDbContext db, IUserProfileService userProfileService)
     {
         _db = db;
-        _userManager = userManager;
         _userProfileService = userProfileService;
     }
 
     public async Task<User?> GetProfileAsync(int userId)
-        => await _db.Users.FirstOrDefaultAsync(u => u.Id == userId);
+        => await _db.Users.FirstOrDefaultAsync(u => u.UserId == userId);
 
     public async Task<User> UpdateProfileAsync(int userId, string firstName, string lastName, string phone)
     {
-        var user = await _db.Users.FirstOrDefaultAsync(u => u.Id == userId);
+        var user = await _db.Users.FirstOrDefaultAsync(u => u.UserId == userId);
         if (user == null)
             throw new KeyNotFoundException("User not found");
 
@@ -83,7 +80,7 @@ public class CustomerService : ICustomerService
     public async Task<CustomerDto> CreateCustomerAsync(CreateCustomerDto dto)
     {
         // Check if email already exists
-        var existingUser = await _userManager.FindByEmailAsync(dto.Email);
+        var existingUser = await _db.Users.FirstOrDefaultAsync(u => u.Email == dto.Email);
         if (existingUser != null)
             throw new InvalidOperationException("Email already registered");
 
@@ -91,25 +88,16 @@ public class CustomerService : ICustomerService
         var user = new User
         {
             Email = dto.Email,
-            UserName = dto.Email,
             FirstName = dto.FirstName,
             LastName = dto.LastName,
             Phone = dto.Phone,
-            EmailConfirmed = true,
             CreatedAt = DateTime.UtcNow
         };
 
-        // Use the password provided by staff
-        var result = await _userManager.CreateAsync(user, dto.Password);
-
-        if (!result.Succeeded)
-        {
-            var errors = string.Join(", ", result.Errors.Select(e => e.Description));
-            throw new InvalidOperationException($"Failed to create customer account: {errors}");
-        }
-
-        // Assign customer role
-        await _userManager.AddToRoleAsync(user, "customer");
+        user.PasswordHashText = BCrypt.Net.BCrypt.HashPassword(dto.Password);
+        user.Role = "customer";
+        _db.Users.Add(user);
+        await _db.SaveChangesAsync();
 
         // Sync user data to the custom 'users' table
         await _userProfileService.CreateUserProfileAsync(user, "customer");
@@ -117,7 +105,7 @@ public class CustomerService : ICustomerService
         // Return customer DTO
         return new CustomerDto
         {
-            Id = user.Id,
+            Id = user.UserId,
             FullName = $"{user.FirstName} {user.LastName}".Trim(),
             Phone = user.Phone,
             Email = user.Email ?? string.Empty,
@@ -167,14 +155,12 @@ public class CustomerService : ICustomerService
     public async Task<IEnumerable<CustomerDto>> GetAllCustomersAsync()
     {
         var customers = await _db.Users
-            .Where(u => _db.UserRoles
-                .Any(ur => ur.UserId == u.Id &&
-                    _db.Roles.Any(r => r.Id == ur.RoleId && r.Name == "customer")))
+            .Where(u => u.Role == "customer")
             .ToListAsync();
 
         return customers.Select(u => new CustomerDto
         {
-            Id = u.Id,
+            Id = u.UserId,
             FullName = $"{u.FirstName} {u.LastName}".Trim(),
             Email = u.Email ?? string.Empty,
             Phone = u.Phone ?? string.Empty,
@@ -193,9 +179,7 @@ public class CustomerService : ICustomerService
 
         var searchLower = searchTerm.ToLower();
         var customers = await _db.Users
-            .Where(u => _db.UserRoles
-                .Any(ur => ur.UserId == u.Id &&
-                    _db.Roles.Any(r => r.Id == ur.RoleId && r.Name == "customer"))
+            .Where(u => u.Role == "customer"
                 && (u.FirstName.ToLower().Contains(searchLower) ||
                     u.LastName.ToLower().Contains(searchLower) ||
                     u.Email!.ToLower().Contains(searchLower) ||
@@ -204,7 +188,7 @@ public class CustomerService : ICustomerService
 
         return customers.Select(u => new CustomerDto
         {
-            Id = u.Id,
+            Id = u.UserId,
             FullName = $"{u.FirstName} {u.LastName}".Trim(),
             Email = u.Email ?? string.Empty,
             Phone = u.Phone ?? string.Empty,
@@ -218,7 +202,7 @@ public class CustomerService : ICustomerService
 
     public async Task<CustomerDashboardDto> GetCustomerDashboardAsync(int customerId)
     {
-        var user = await _db.Users.FirstOrDefaultAsync(u => u.Id == customerId);
+        var user = await _db.Users.FirstOrDefaultAsync(u => u.UserId == customerId);
         if (user == null)
             throw new KeyNotFoundException("Customer not found");
 

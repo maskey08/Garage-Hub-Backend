@@ -1,0 +1,441 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Garage Hub API Test</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        .container {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            margin-bottom: 20px;
+        }
+        .form-group {
+            margin-bottom: 15px;
+        }
+        label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: bold;
+        }
+        input, select, textarea {
+            width: 100%;
+            padding: 8px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            box-sizing: border-box;
+        }
+        button {
+            background-color: #007bff;
+            color: white;
+            padding: 10px 20px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            margin-right: 10px;
+        }
+        button:hover {
+            background-color: #0056b3;
+        }
+        button:disabled {
+            background-color: #ccc;
+            cursor: not-allowed;
+        }
+        .success {
+            color: #28a745;
+            background-color: #d4edda;
+            padding: 10px;
+            border-radius: 4px;
+            margin: 10px 0;
+        }
+        .error {
+            color: #dc3545;
+            background-color: #f8d7da;
+            padding: 10px;
+            border-radius: 4px;
+            margin: 10px 0;
+        }
+        .response {
+            background-color: #f8f9fa;
+            padding: 10px;
+            border-radius: 4px;
+            margin: 10px 0;
+            white-space: pre-wrap;
+            font-family: monospace;
+            max-height: 300px;
+            overflow-y: auto;
+        }
+        .auth-status {
+            padding: 10px;
+            border-radius: 4px;
+            margin-bottom: 20px;
+        }
+        .authenticated {
+            background-color: #d4edda;
+            color: #155724;
+        }
+        .not-authenticated {
+            background-color: #f8d7da;
+            color: #721c24;
+        }
+        .tabs {
+            display: flex;
+            border-bottom: 1px solid #ddd;
+            margin-bottom: 20px;
+        }
+        .tab {
+            padding: 10px 20px;
+            cursor: pointer;
+            border: none;
+            background: none;
+            border-bottom: 2px solid transparent;
+        }
+        .tab.active {
+            border-bottom-color: #007bff;
+            color: #007bff;
+        }
+        .tab-content {
+            display: none;
+        }
+        .tab-content.active {
+            display: block;
+        }
+    </style>
+</head>
+<body>
+    <h1>🚗 Garage Hub API Test Interface</h1>
+    
+    <div class="auth-status" id="authStatus">
+        <span id="authText">Not authenticated</span>
+        <button onclick="logout()" id="logoutBtn" style="display: none; float: right;">Logout</button>
+    </div>
+
+    <div class="tabs">
+        <button class="tab active" onclick="showTab('auth')">Authentication</button>
+        <button class="tab" onclick="showTab('customer')">Customer</button>
+        <button class="tab" onclick="showTab('admin')">Admin</button>
+        <button class="tab" onclick="showTab('diagnostics')">Diagnostics</button>
+    </div>
+
+    <!-- Authentication Tab -->
+    <div id="auth" class="tab-content active">
+        <div class="container">
+            <h2>🔐 Authentication</h2>
+            
+            <h3>Register</h3>
+            <div class="form-group">
+                <label>Email:</label>
+                <input type="email" id="regEmail" value="test@example.com">
+            </div>
+            <div class="form-group">
+                <label>Password:</label>
+                <input type="password" id="regPassword" value="Test@123456">
+            </div>
+            <div class="form-group">
+                <label>First Name:</label>
+                <input type="text" id="regFirstName" value="John">
+            </div>
+            <div class="form-group">
+                <label>Last Name:</label>
+                <input type="text" id="regLastName" value="Doe">
+            </div>
+            <div class="form-group">
+                <label>Phone:</label>
+                <input type="text" id="regPhone" value="+1234567890">
+            </div>
+            <div class="form-group">
+                <label>Role:</label>
+                <select id="regRole">
+                    <option value="customer">Customer</option>
+                    <option value="staff">Staff</option>
+                    <option value="admin">Admin</option>
+                </select>
+            </div>
+            <button onclick="register()">Register</button>
+
+            <h3>Login</h3>
+            <div class="form-group">
+                <label>Email:</label>
+                <input type="email" id="loginEmail" value="smartsikchya.noreply@gmail.com">
+            </div>
+            <div class="form-group">
+                <label>Password:</label>
+                <input type="password" id="loginPassword" value="Admin@123456">
+            </div>
+            <button onclick="login()">Login</button>
+        </div>
+    </div>
+
+    <!-- Customer Tab -->
+    <div id="customer" class="tab-content">
+        <div class="container">
+            <h2>👤 Customer Operations</h2>
+            
+            <button onclick="getCustomerDashboard()">Get Dashboard</button>
+            <button onclick="getCustomerProfile()">Get Profile</button>
+            <button onclick="getCustomerVehicles()">Get Vehicles</button>
+            <button onclick="getCustomerAppointments()">Get Appointments</button>
+            
+            <h3>Add Vehicle</h3>
+            <div class="form-group">
+                <label>Vehicle Number:</label>
+                <input type="text" id="vehicleNumber" value="ABC123">
+            </div>
+            <div class="form-group">
+                <label>Make:</label>
+                <input type="text" id="vehicleMake" value="Toyota">
+            </div>
+            <div class="form-group">
+                <label>Model:</label>
+                <input type="text" id="vehicleModel" value="Camry">
+            </div>
+            <div class="form-group">
+                <label>Year:</label>
+                <input type="number" id="vehicleYear" value="2020">
+            </div>
+            <button onclick="addVehicle()">Add Vehicle</button>
+        </div>
+    </div>
+
+    <!-- Admin Tab -->
+    <div id="admin" class="tab-content">
+        <div class="container">
+            <h2>👥 Admin Operations</h2>
+            
+            <button onclick="getDashboardStats()">Dashboard Statistics</button>
+            <button onclick="getAllStaff()">Get All Staff</button>
+            <button onclick="getDailyReport()">Daily Report</button>
+            <button onclick="getMonthlyReport()">Monthly Report</button>
+            <button onclick="getLowStockAlerts()">Low Stock Alerts</button>
+            <button onclick="getTopCustomers()">Top Customers</button>
+        </div>
+    </div>
+
+    <!-- Diagnostics Tab -->
+    <div id="diagnostics" class="tab-content">
+        <div class="container">
+            <h2>🔧 Diagnostics</h2>
+            
+            <button onclick="checkHealth()">Health Check</button>
+            <button onclick="getApiInfo()">API Info</button>
+            <button onclick="checkDbStatus()">Database Status</button>
+            <button onclick="getAllUsers()">All Users (Debug)</button>
+        </div>
+    </div>
+
+    <div class="container">
+        <h2>📋 Response</h2>
+        <div id="response" class="response">No requests made yet...</div>
+    </div>
+
+    <script>
+        const API_BASE = 'https://localhost:7000';
+        let authToken = localStorage.getItem('authToken');
+        let currentUser = JSON.parse(localStorage.getItem('currentUser') || 'null');
+
+        // Update auth status display
+        function updateAuthStatus() {
+            const authStatus = document.getElementById('authStatus');
+            const authText = document.getElementById('authText');
+            const logoutBtn = document.getElementById('logoutBtn');
+
+            if (authToken && currentUser) {
+                authStatus.className = 'auth-status authenticated';
+                authText.textContent = `Authenticated as ${currentUser.name} (${currentUser.role})`;
+                logoutBtn.style.display = 'inline-block';
+            } else {
+                authStatus.className = 'auth-status not-authenticated';
+                authText.textContent = 'Not authenticated';
+                logoutBtn.style.display = 'none';
+            }
+        }
+
+        // Initialize auth status
+        updateAuthStatus();
+
+        // Tab switching
+        function showTab(tabName) {
+            // Hide all tabs
+            document.querySelectorAll('.tab-content').forEach(tab => {
+                tab.classList.remove('active');
+            });
+            document.querySelectorAll('.tab').forEach(tab => {
+                tab.classList.remove('active');
+            });
+
+            // Show selected tab
+            document.getElementById(tabName).classList.add('active');
+            event.target.classList.add('active');
+        }
+
+        // API request helper
+        async function apiRequest(endpoint, options = {}) {
+            const url = `${API_BASE}${endpoint}`;
+            const config = {
+                headers: {
+                    'Content-Type': 'application/json',
+                    ...(authToken && { 'Authorization': `Bearer ${authToken}` }),
+                    ...options.headers
+                },
+                ...options
+            };
+
+            try {
+                const response = await fetch(url, config);
+                const data = await response.json();
+                
+                if (response.status === 401) {
+                    logout();
+                    throw new Error('Authentication required');
+                }
+
+                displayResponse(data, response.ok);
+                return data;
+            } catch (error) {
+                displayResponse({ error: error.message }, false);
+                throw error;
+            }
+        }
+
+        // Display response
+        function displayResponse(data, success) {
+            const responseDiv = document.getElementById('response');
+            responseDiv.textContent = JSON.stringify(data, null, 2);
+            responseDiv.className = `response ${success ? 'success' : 'error'}`;
+        }
+
+        // Authentication functions
+        async function register() {
+            const userData = {
+                email: document.getElementById('regEmail').value,
+                password: document.getElementById('regPassword').value,
+                firstName: document.getElementById('regFirstName').value,
+                lastName: document.getElementById('regLastName').value,
+                phone: document.getElementById('regPhone').value,
+                role: document.getElementById('regRole').value
+            };
+
+            await apiRequest('/api/auth/register', {
+                method: 'POST',
+                body: JSON.stringify(userData)
+            });
+        }
+
+        async function login() {
+            const loginData = {
+                email: document.getElementById('loginEmail').value,
+                password: document.getElementById('loginPassword').value
+            };
+
+            const response = await apiRequest('/api/auth/login', {
+                method: 'POST',
+                body: JSON.stringify(loginData)
+            });
+
+            if (response.success) {
+                authToken = response.token;
+                currentUser = {
+                    name: response.fullName,
+                    role: response.role
+                };
+                localStorage.setItem('authToken', authToken);
+                localStorage.setItem('currentUser', JSON.stringify(currentUser));
+                updateAuthStatus();
+            }
+        }
+
+        function logout() {
+            authToken = null;
+            currentUser = null;
+            localStorage.removeItem('authToken');
+            localStorage.removeItem('currentUser');
+            updateAuthStatus();
+            displayResponse({ message: 'Logged out successfully' }, true);
+        }
+
+        // Customer functions
+        async function getCustomerDashboard() {
+            await apiRequest('/api/customer/dashboard');
+        }
+
+        async function getCustomerProfile() {
+            await apiRequest('/api/customer/profile');
+        }
+
+        async function getCustomerVehicles() {
+            await apiRequest('/api/customer/vehicles');
+        }
+
+        async function getCustomerAppointments() {
+            await apiRequest('/api/appointment');
+        }
+
+        async function addVehicle() {
+            const vehicleData = {
+                vehicleNumber: document.getElementById('vehicleNumber').value,
+                make: document.getElementById('vehicleMake').value,
+                model: document.getElementById('vehicleModel').value,
+                year: parseInt(document.getElementById('vehicleYear').value)
+            };
+
+            await apiRequest('/api/customer/vehicles', {
+                method: 'POST',
+                body: JSON.stringify(vehicleData)
+            });
+        }
+
+        // Admin functions
+        async function getDashboardStats() {
+            await apiRequest('/api/dashboard/statistics');
+        }
+
+        async function getAllStaff() {
+            await apiRequest('/api/staff');
+        }
+
+        async function getDailyReport() {
+            const today = new Date().toISOString().split('T')[0];
+            await apiRequest(`/api/reports/daily?date=${today}`);
+        }
+
+        async function getMonthlyReport() {
+            const now = new Date();
+            await apiRequest(`/api/reports/monthly?year=${now.getFullYear()}&month=${now.getMonth() + 1}`);
+        }
+
+        async function getLowStockAlerts() {
+            await apiRequest('/api/reports/low-stock?threshold=10');
+        }
+
+        async function getTopCustomers() {
+            await apiRequest('/api/reports/top-customers?limit=10');
+        }
+
+        // Diagnostic functions
+        async function checkHealth() {
+            await apiRequest('/api/health');
+        }
+
+        async function getApiInfo() {
+            await apiRequest('/api/info');
+        }
+
+        async function checkDbStatus() {
+            await apiRequest('/api/diagnostics/db-status');
+        }
+
+        async function getAllUsers() {
+            await apiRequest('/api/diagnostics/users');
+        }
+    </script>
+</body>
+</html>

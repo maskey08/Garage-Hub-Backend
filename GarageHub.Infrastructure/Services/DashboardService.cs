@@ -3,7 +3,7 @@ using GarageHub.Application.Interfaces;
 using GarageHub.Infrastructure.Data;
 using Microsoft.EntityFrameworkCore;
 
-namespace GarageHub.Application.Services;
+namespace GarageHub.Infrastructure.Services;
 
 public class DashboardService : IDashboardService
 {
@@ -16,20 +16,11 @@ public class DashboardService : IDashboardService
 
     public async Task<DashboardStatisticsDto> GetStatisticsAsync()
     {
-        var adminAndStaffRole = await _dbContext.Roles
-            .Where(r => r.Name == "admin" || r.Name == "staff")
-            .Select(r => r.Id)
-            .ToListAsync();
-
         var totalCustomersCount = await _dbContext.Users
-            .CountAsync(u => !_dbContext.UserRoles
-                .Where(ur => adminAndStaffRole.Contains(ur.RoleId))
-                .Select(ur => ur.UserId)
-                .Contains(u.Id));
+            .CountAsync(u => u.Role == "customer" || string.IsNullOrEmpty(u.Role));
 
-        var totalStaffCount = await _dbContext.UserRoles
-            .CountAsync(ur => _dbContext.Roles
-                .Any(r => r.Name == "staff" && r.Id == ur.RoleId));
+        var totalStaffCount = await _dbContext.Users
+            .CountAsync(u => u.Role == "staff" || u.Role == "admin");
 
         var totalAppointmentsCount = await _dbContext.Appointments.CountAsync();
         var pendingAppointmentsCount = await _dbContext.Appointments

@@ -1,34 +1,30 @@
 using GarageHub.Application.Interfaces;
-using GarageHub.Application.Services;
 using GarageHub.Domain.Entities;
 using GarageHub.Infrastructure.Data;
+using GarageHub.Infrastructure.Repositories;
+using GarageHub.Infrastructure.Services;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
-using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
-using System.Diagnostics;
 using System.Security.Claims;
 using System.Text;
 
 var builder = WebApplication.CreateBuilder(args);
 
 builder.Services.AddControllers();
+builder.Services.AddOpenApi();
 
-// Database - Use environment variable for connection string if available
-var connectionString = Environment.GetEnvironmentVariable("GARAGEHUB_DB_CONNECTION") 
-    ?? builder.Configuration.GetConnectionString("DefaultConnection");
-
+// ── Database ──────────────────────────────────────────────────
 builder.Services.AddDbContext<AppDbContext>(options =>
-    options.UseNpgsql(connectionString));
+    options.UseNpgsql(
+        builder.Configuration.GetConnectionString("DefaultConnection")));
 
-// Identity
-builder.Services.AddIdentityCore<User>()
-    .AddRoles<IdentityRole<int>>()
-    .AddEntityFrameworkStores<AppDbContext>()
-    .AddSignInManager()
-    .AddDefaultTokenProviders();
+// ── Repositories ──────────────────────────────────────────────
+builder.Services.AddScoped(typeof(IRepository<>), typeof(Repository<>));
+builder.Services.AddScoped<IReportRepository, ReportRepository>();
+builder.Services.AddScoped<IPartRepository, PartRepository>();
 
-// Services
+// ── Services ──────────────────────────────────────────────────
 builder.Services.AddScoped<IAuthService, AuthService>();
 builder.Services.AddScoped<IAppointmentService, AppointmentService>();
 builder.Services.AddScoped<IPartRequestService, PartRequestService>();
@@ -37,10 +33,17 @@ builder.Services.AddScoped<ICustomerService, CustomerService>();
 builder.Services.AddScoped<IStaffService, StaffService>();
 builder.Services.AddScoped<IDashboardService, DashboardService>();
 builder.Services.AddScoped<IPartService, PartService>();
+builder.Services.AddScoped<IVendorService, VendorService>();
 builder.Services.AddScoped<IUserProfileService, UserProfileService>();
+builder.Services.AddScoped<INotificationService, NotificationService>();
+builder.Services.AddScoped<IPurchaseInvoiceService, PurchaseInvoiceService>();
+builder.Services.AddScoped<IReportService, ReportService>();
+builder.Services.AddScoped<ISaleService, SaleService>();
+builder.Services.AddScoped<IEmailService, EmailService>();
 
-// JWT
-var jwtKey = builder.Configuration["Jwt:Key"] ?? "GarageHubSecretKey12345678901234567890";
+// ── JWT ───────────────────────────────────────────────────────
+var jwtKey = builder.Configuration["Jwt:Key"]
+    ?? throw new Exception("Jwt:Key is missing from appsettings.json");
 
 builder.Services.AddAuthentication(options =>
 {
@@ -61,26 +64,46 @@ builder.Services.AddAuthentication(options =>
         IssuerSigningKey = new SymmetricSecurityKey(
             Encoding.UTF8.GetBytes(jwtKey)),
         RoleClaimType = "http://schemas.microsoft.com/ws/2008/06/identity/claims/role",
-        NameClaimType = ClaimTypes.NameIdentifier
+        NameClaimType = ClaimTypes.NameIdentifier,
+        ClockSkew = TimeSpan.Zero // Reduce clock skew tolerance
     };
 
+    // Handle token from both Authorization header and cookies
     options.Events = new JwtBearerEvents
     {
+        OnMessageReceived = context =>
+        {
+            // First try Authorization header
+            var token = context.Request.Headers["Authorization"]
+                .FirstOrDefault()?.Split(" ").Last();
+            
+            // If no header token, try cookie
+            if (string.IsNullOrEmpty(token))
+            {
+                token = context.Request.Cookies["AuthToken"];
+            }
+            
+            if (!string.IsNullOrEmpty(token))
+            {
+                context.Token = token;
+            }
+            
+            return Task.CompletedTask;
+        },
         OnAuthenticationFailed = context =>
         {
-            Debug.WriteLine($"❌ Auth failed: {context.Exception.Message}");
+            Console.WriteLine($"❌ Auth failed: {context.Exception.Message}");
             return Task.CompletedTask;
         },
         OnForbidden = context =>
         {
-            Debug.WriteLine($"❌ Forbidden — token valid but role check failed");
-            Debug.WriteLine($"   Claims: {string.Join(", ", context.HttpContext.User.Claims.Select(c => $"{c.Type}={c.Value}"))}");
+            Console.WriteLine("❌ Forbidden — role check failed");
+            Console.WriteLine($"   Claims: {string.Join(", ", context.HttpContext.User.Claims.Select(c => $"{c.Type}={c.Value}"))}");
             return Task.CompletedTask;
         },
         OnTokenValidated = context =>
         {
-            Debug.WriteLine($"✅ Token validated for: {context.HttpContext.User.Identity?.Name}");
-            Debug.WriteLine($"   Roles: {string.Join(", ", context.HttpContext.User.Claims.Where(c => c.Type == "role").Select(c => c.Value))}");
+            Console.WriteLine($"✅ Token valid for user: {context.HttpContext.User.FindFirst(ClaimTypes.NameIdentifier)?.Value}");
             return Task.CompletedTask;
         }
     };
@@ -88,301 +111,137 @@ builder.Services.AddAuthentication(options =>
 
 builder.Services.AddAuthorization();
 
-// CORS
+// ── CORS ──────────────────────────────────────────────────────
 builder.Services.AddCors(options =>
 {
     options.AddPolicy("AllowFrontend", policy =>
     {
-        policy
-            .SetIsOriginAllowed(_ => true)
-            .AllowAnyHeader()
-            .AllowAnyMethod();
-    });
-});
-
-// Database - PostgreSQL
-builder.Services.AddDbContext<AppDbContext>(options =>
-    options.UseNpgsql(builder.Configuration.GetConnectionString("DefaultConnection")));
-
-// Repositories
-builder.Services.AddScoped(typeof(IRepository<>), typeof(Repository<>));
-
-// Services
-builder.Services.AddScoped<IVendorService, VendorService>();
-
-// CORS - allow frontend
-builder.Services.AddCors(options =>
-{
-    options.AddPolicy("AllowFrontend", policy =>
-    {
-        policy.WithOrigins("http://localhost:5173", "http://localhost:5174")
+        policy.SetIsOriginAllowed(_ => true)
               .AllowAnyHeader()
               .AllowAnyMethod();
     });
 });
 
+// ═════════════════════════════════════════════════════════════
 var app = builder.Build();
+// ═════════════════════════════════════════════════════════════
 
-// Apply pending migrations
-try
+// ── Swagger ───────────────────────────────────────────────────
+if (app.Environment.IsDevelopment())
 {
-    using (var scope = app.Services.CreateScope())
+    app.MapOpenApi();
+}
+
+// ── Database setup ────────────────────────────────────────────
+using (var scope = app.Services.CreateScope())
+{
+    var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+    try
     {
-        var dbContext = scope.ServiceProvider.GetRequiredService<AppDbContext>();
-
-        try
-        {
-            Debug.WriteLine("Checking database state...");
-
-            // Check if the database exists
-            bool canConnect = await dbContext.Database.CanConnectAsync();
-            if (!canConnect)
-            {
-                Debug.WriteLine("Database cannot connect, creating...");
-                await dbContext.Database.EnsureCreatedAsync();
-            }
-            else
-            {
-                Debug.WriteLine("✅ Database connection established");
-
-                // Try to get migrations to apply
-                var pending = await dbContext.Database.GetPendingMigrationsAsync();
-                if (pending.Any())
-                {
-                    Debug.WriteLine($"Applying {pending.Count()} pending migrations...");
-                    try
-                    {
-                        await dbContext.Database.MigrateAsync();
-                        Debug.WriteLine("✅ Migrations applied");
-                    }
-                    catch (Exception migEx) when (migEx.Message.Contains("already exists"))
-                    {
-                        Debug.WriteLine("✅ Tables already exist, skipping migration");
-                    }
-                }
-                else
-                {
-                    Debug.WriteLine("✅ All migrations already applied");
-                }
-            }
-        }
-        catch (Exception ex)
-        {
-            if (ex.Message.Contains("already exists"))
-            {
-                Debug.WriteLine("✅ Database schema is complete");
-            }
-            else
-            {
-                Debug.WriteLine($"❌ Database check failed: {ex.Message}");
-                throw;
-            }
-        }
+        // ✅ Only apply pending migrations — never EnsureDeleted in production
+        await db.Database.MigrateAsync();
+        Console.WriteLine("✅ Database migrations applied");
+    }
+    catch (Exception ex)
+    {
+        Console.WriteLine($"⚠️ Migration warning: {ex.Message}");
+        // If migrations fail, try EnsureCreated as fallback
+        await db.Database.EnsureCreatedAsync();
+        Console.WriteLine("✅ Database schema ensured");
     }
 }
-catch (Exception ex)
-{
-    Debug.WriteLine($"❌ Fatal error: {ex.Message}");
-    throw;
-}
 
-// Seed roles and admin user
-try
-{
-    await SeedAdminAsync(app);
-}
-catch (Npgsql.PostgresException pgEx) when (pgEx.SqlState == "28P01")
-{
-    Debug.WriteLine($"❌ PostgreSQL authentication failed: {pgEx.Message}");
-    Debug.WriteLine($"❌ Please verify PostgreSQL credentials:");
-    Debug.WriteLine($"   - Check the password in appsettings.json matches your PostgreSQL 'postgres' user");
-    Debug.WriteLine($"   - Or set GARAGEHUB_DB_CONNECTION environment variable with correct credentials");
-    Debug.WriteLine($"   - Example: Host=localhost;Port=5432;Database=garagehub;Username=postgres;Password=YOUR_ACTUAL_PASSWORD");
-    throw;
-}
-catch (Exception ex)
-{
-    Debug.WriteLine($"❌ Seeding failed: {ex.Message}");
-    Debug.WriteLine($"Stack Trace: {ex.StackTrace}");
-    throw;
-}
+// ── Seed admin ────────────────────────────────────────────────
+await SeedAdminAsync(app);
 
-app.UseCors("AllowFrontend");
+// ── Middleware pipeline (ORDER MATTERS) ───────────────────────
 app.UseHttpsRedirection();
-app.UseCors("AllowFrontend");
-app.UseAuthentication();
-app.UseAuthorization();
+app.UseCors("AllowFrontend");       // ← CORS first
+app.UseAuthentication();            // ← then auth
+app.UseAuthorization();             // ← then authorization
 app.MapControllers();
-app.Run();
 
-// ─── Seed Method ────────────────────────────────────────────
+// ── Diagnostic endpoints ──────────────────────────────────────
+app.MapGet("/api/diagnostics/db-status", async (AppDbContext db) =>
+{
+    try
+    {
+        var connected = await db.Database.CanConnectAsync();
+        var userCount = await db.Users.CountAsync();
+        return Results.Ok(new { Database = connected ? "Connected" : "Disconnected", UserCount = userCount });
+    }
+    catch (Exception ex)
+    {
+        return Results.Problem($"Database error: {ex.Message}");
+    }
+}).AllowAnonymous();
+
+app.MapGet("/api/diagnostics/users", async (AppDbContext db) =>
+{
+    try
+    {
+        var users = await db.Users
+            .Select(u => new { u.UserId, u.Email, u.Role, u.FirstName, u.LastName })
+            .ToListAsync();
+        return Results.Ok(users);
+    }
+    catch (Exception ex)
+    {
+        return Results.Problem($"Error fetching users: {ex.Message}");
+    }
+}).AllowAnonymous();
+
+// Health check endpoint
+app.MapGet("/api/health", () => Results.Ok(new { Status = "Healthy", Timestamp = DateTime.UtcNow }))
+   .AllowAnonymous();
+
+// API info endpoint
+app.MapGet("/api/info", () => Results.Ok(new { 
+    Name = "Garage Hub API", 
+    Version = "1.0.0", 
+    Environment = app.Environment.EnvironmentName,
+    Timestamp = DateTime.UtcNow 
+})).AllowAnonymous();
+
+app.Run(); // ← app.Run() is LAST, nothing after this runs
+
+// ─── Seed Method ─────────────────────────────────────────────
 async Task SeedAdminAsync(WebApplication webApp)
 {
     using var scope = webApp.Services.CreateScope();
-
-    var roleManager = scope.ServiceProvider
-        .GetRequiredService<RoleManager<IdentityRole<int>>>();
-    var userManager = scope.ServiceProvider
-        .GetRequiredService<UserManager<User>>();
-    var userProfileService = scope.ServiceProvider
-        .GetRequiredService<IUserProfileService>();
-
-    // Create roles
-    foreach (var role in new[] { "admin", "staff", "customer" })
-    {
-                                if (!await roleManager.RoleExistsAsync(role))
-        {
-            var r = await roleManager.CreateAsync(new IdentityRole<int> { Name = role });
-            Debug.WriteLine(r.Succeeded ? $"✅ Role '{role}' created" : $"❌ Role '{role}' failed");
-        }
-        else
-        {
-            Debug.WriteLine($"ℹ️  Role '{role}' already exists");
-        }
-    }
+    var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
 
     var adminEmail = "smartsikchya.noreply@gmail.com";
-    var adminUser = await userManager.FindByEmailAsync(adminEmail);
+    var adminUser = await db.Users.FirstOrDefaultAsync(u => u.Email == adminEmail);
 
     if (adminUser == null)
     {
-        // Create fresh admin
         var admin = new User
         {
             Email = adminEmail,
-            UserName = adminEmail,
             FirstName = "Admin",
             LastName = "User",
-            EmailConfirmed = true,
             Phone = "+1234567890",
+            Role = "admin",
             CreatedAt = DateTime.UtcNow
         };
+        admin.PasswordHashText = BCrypt.Net.BCrypt.HashPassword("Admin@123456");
 
-        var result = await userManager.CreateAsync(admin, "Admin@123456");
-        if (!result.Succeeded)
-        {
-            foreach (var error in result.Errors)
-                Debug.WriteLine($"❌ {error.Description}");
-        }
-        else
-        {
-            var roleResult = await userManager.AddToRoleAsync(admin, "admin");
-            Debug.WriteLine(roleResult.Succeeded
-                ? "✅ Admin created + role assigned"
-                : "❌ Admin created but role assignment failed");
-
-            // Sync admin to the custom 'users' table
-            await userProfileService.CreateUserProfileAsync(admin, "admin");
-        }
+        db.Users.Add(admin);
+        await db.SaveChangesAsync();
+        Console.WriteLine("✅ Admin created successfully");
     }
     else
     {
-        Debug.WriteLine($"ℹ️  Admin user already exists (Id: {adminUser.Id})");
-
-        // ✅ Always check and fix the FirstName and LastName
-        bool needsUpdate = false;
-        if (string.IsNullOrWhiteSpace(adminUser.FirstName) || adminUser.FirstName != "Admin")
+        if (adminUser.Role != "admin")
         {
-            adminUser.FirstName = "Admin";
-            needsUpdate = true;
-        }
-        if (string.IsNullOrWhiteSpace(adminUser.LastName) || adminUser.LastName != "User")
-        {
-            adminUser.LastName = "User";
-            needsUpdate = true;
-        }
-
-        if (needsUpdate)
-        {
-            var updateResult = await userManager.UpdateAsync(adminUser);
-            Debug.WriteLine(updateResult.Succeeded
-                ? "✅ Admin FirstName/LastName updated"
-                : $"❌ Failed to update admin: {string.Join(", ", updateResult.Errors.Select(e => e.Description))}");
-        }
-
-        // ✅ Always check and fix the role
-        var roles = await userManager.GetRolesAsync(adminUser);
-        Debug.WriteLine($"ℹ️  Current roles: [{string.Join(", ", roles)}]");
-
-        if (!roles.Contains("admin"))
-        {
-            var roleResult = await userManager.AddToRoleAsync(adminUser, "admin");
-            Debug.WriteLine(roleResult.Succeeded
-                ? "✅ Admin role assigned to existing user"
-                : $"❌ Failed: {string.Join(", ", roleResult.Errors.Select(e => e.Description))}");
+            adminUser.Role = "admin";
+            await db.SaveChangesAsync();
+            Console.WriteLine("✅ Admin role fixed");
         }
         else
         {
-            Debug.WriteLine("✅ Admin already has 'admin' role — all good");
+            Console.WriteLine($"✅ Admin exists (Id: {adminUser.UserId}) — all good");
         }
-
-        // ✅ Sync admin profile to the custom 'users' table
-        await userProfileService.UpdateUserProfileAsync(adminUser, "admin");
     }
 }
-
-// ─── Diagnostic Endpoints ─────────────────────────────────────
-app.MapGet("/api/diagnostics/db-status", async (AppDbContext db) =>
-{
-    var connected = await db.Database.CanConnectAsync();
-    var userCount = await db.Users.CountAsync();
-    var roleCount = await db.Roles.CountAsync();
-    var appointmentCount = await db.Appointments.CountAsync();
-    var partRequestCount = await db.PartRequests.CountAsync();
-    var reviewCount = await db.Reviews.CountAsync();
-
-    return Results.Ok(new
-    {
-        Database = connected ? "Connected" : "Disconnected",
-        UserCount = userCount,
-        RoleCount = roleCount,
-        AppointmentCount = appointmentCount,
-        PartRequestCount = partRequestCount,
-        ReviewCount = reviewCount
-    });
-});
-
-app.MapGet("/api/diagnostics/users", async (UserManager<User> userManager) =>
-{
-    var users = userManager.Users
-        .Select(u => new { u.Id, u.Email, u.UserName, u.FirstName, u.LastName, u.Phone, u.CreatedAt })
-        .ToList();
-
-    return Results.Ok(users);
-});
-
-app.MapGet("/api/diagnostics/roles", async (RoleManager<IdentityRole<int>> roleManager) =>
-{
-    var roles = roleManager.Roles
-        .Select(r => new { r.Id, r.Name })
-        .ToList();
-
-    return Results.Ok(roles);
-});
-
-app.MapGet("/api/diagnostics/user-roles", async (AppDbContext db) =>
-{
-    var users = await db.Users.ToListAsync();
-    var userRolesList = new List<object>();
-
-    foreach (var user in users)
-    {
-        var userRoles = await db.UserRoles
-            .Where(ur => ur.UserId == user.Id)
-            .Join(db.Roles, ur => ur.RoleId, r => r.Id, (ur, r) => new
-            {
-                UserId = user.Id,
-                UserEmail = user.Email,
-                RoleId = r.Id,
-                RoleName = r.Name
-            })
-            .ToListAsync();
-
-        if (userRoles.Any())
-        {
-            userRolesList.AddRange(userRoles);
-        }
-    }
-
-    return Results.Ok(userRolesList);
-});

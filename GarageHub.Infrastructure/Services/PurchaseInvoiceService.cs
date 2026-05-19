@@ -2,7 +2,7 @@ using GarageHub.Application.DTOs.PurchaseInvoice;
 using GarageHub.Application.Interfaces;
 using GarageHub.Domain.Entities;
 
-namespace GarageHub.Application.Services
+namespace GarageHub.Infrastructure.Services
 {
     public class PurchaseInvoiceService : IPurchaseInvoiceService
     {
@@ -32,7 +32,7 @@ namespace GarageHub.Application.Services
                 {
                     Id = item.Id,
                     PartId = item.PartId,
-                    PartName = item.Part?.Name,
+                    PartName = item.Part?.PartName,
                     Quantity = item.Quantity,
                     UnitPrice = item.UnitPrice,
                     TotalPrice = item.TotalPrice
@@ -58,7 +58,7 @@ namespace GarageHub.Application.Services
                 {
                     Id = item.Id,
                     PartId = item.PartId,
-                    PartName = item.Part?.Name,
+                    PartName = item.Part?.PartName,
                     Quantity = item.Quantity,
                     UnitPrice = item.UnitPrice,
                     TotalPrice = item.TotalPrice
@@ -82,13 +82,12 @@ namespace GarageHub.Application.Services
             };
             invoice.TotalAmount = invoice.Items.Sum(i => i.Quantity * i.UnitPrice);
 
-            // Update stock for each part
             foreach (var item in dto.Items)
             {
                 var part = await _partRepository.GetByIdAsync(item.PartId);
                 if (part != null)
                 {
-                    part.QuantityInStock += item.Quantity;
+                    part.StockQuantity += item.Quantity;
                     await _partRepository.UpdateAsync(part);
                 }
             }

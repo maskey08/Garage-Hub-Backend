@@ -2,7 +2,7 @@ using GarageHub.Application.DTOs.Vendor;
 using GarageHub.Application.Interfaces;
 using GarageHub.Domain.Entities;
 
-namespace GarageHub.Application.Services
+namespace GarageHub.Infrastructure.Services
 {
     public class VendorService : IVendorService
     {

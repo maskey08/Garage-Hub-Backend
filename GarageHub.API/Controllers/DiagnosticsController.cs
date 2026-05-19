@@ -30,14 +30,14 @@ public class DiagnosticsController : ControllerBase
             var users = await _db.Users
                 .Select(u => new
                 {
-                    u.Id,
+                    u.UserId,
                     u.Email,
                     u.FirstName,
                     u.LastName,
                     u.Phone,
-                    u.EmailConfirmed,
+                    u.Role,
                     u.CreatedAt,
-                    PasswordHashExists = !string.IsNullOrEmpty(u.PasswordHash)
+                    PasswordHashExists = !string.IsNullOrEmpty(u.PasswordHashText)
                 })
                 .ToListAsync();
 
@@ -61,11 +61,15 @@ public class DiagnosticsController : ControllerBase
     {
         try
         {
-            var roles = await _db.Roles.ToListAsync();
+            var roles = await _db.Users
+                .Select(u => u.Role)
+                .Where(r => !string.IsNullOrEmpty(r))
+                .Distinct()
+                .ToListAsync();
             return Ok(new
             {
                 TotalRoles = roles.Count,
-                Roles = roles.Select(r => new { r.Id, r.Name })
+                Roles = roles.Select(r => new { Name = r })
             });
         }
         catch (Exception ex)
@@ -82,27 +86,15 @@ public class DiagnosticsController : ControllerBase
     {
         try
         {
-            var users = await _db.Users.ToListAsync();
-            var userRolesList = new List<object>();
-
-            foreach (var user in users)
-            {
-                var userRoles = await _db.UserRoles
-                    .Where(ur => ur.UserId == user.Id)
-                    .Join(_db.Roles, ur => ur.RoleId, r => r.Id, (ur, r) => new
-                    {
-                        UserId = user.Id,
-                        UserEmail = user.Email,
-                        RoleId = r.Id,
-                        RoleName = r.Name
-                    })
-                    .ToListAsync();
-
-                if (userRoles.Any())
+            var userRolesList = await _db.Users
+                .Select(u => new
                 {
-                    userRolesList.AddRange(userRoles);
-                }
-            }
+                    UserId = u.UserId,
+                    UserEmail = u.Email,
+                    RoleName = u.Role
+                })
+                .Where(u => !string.IsNullOrEmpty(u.RoleName))
+                .ToListAsync();
 
             return Ok(new
             {
@@ -129,16 +121,15 @@ public class DiagnosticsController : ControllerBase
             // Try to count users
             var userCount = 0;
             var roleCount = 0;
-            var userRoleCount = 0;
-            var userProfileCount = 0;
 
             try
             {
                 userCount = await _db.Users.CountAsync();
-                roleCount = await _db.Roles.CountAsync();
-                userRoleCount = await _db.UserRoles.CountAsync();
-                // UserProfiles is now deprecated - User entity maps directly to users table
-                userProfileCount = userCount; // Same count as users
+                roleCount = await _db.Users
+                    .Select(u => u.Role)
+                    .Where(r => !string.IsNullOrEmpty(r))
+                    .Distinct()
+                    .CountAsync();
             }
             catch (Exception ex)
             {
@@ -156,7 +147,6 @@ public class DiagnosticsController : ControllerBase
                 {
                     Users = userCount,
                     Roles = roleCount,
-                    UserRoles = userRoleCount,
                     Message = "UserProfile entity is deprecated - User table is now consolidated"
                 }
             });
@@ -178,12 +168,12 @@ public class DiagnosticsController : ControllerBase
             var profiles = await _db.Users
                 .Select(u => new
                 {
-                    u.Id,
+                    u.UserId,
                     u.FirstName,
                     u.LastName,
                     u.Email,
                     u.Phone,
-                    u.UserName,
+                    u.Role,
                     u.CreatedAt
                 })
                 .ToListAsync();
@@ -210,10 +200,7 @@ public class DiagnosticsController : ControllerBase
         {
             var totalUsers = await _db.Users.CountAsync();
             var staffUsers = await _db.Users
-                .Where(u => _db.UserRoles
-                    .Any(ur => ur.UserId == u.Id && 
-                        _db.Roles.Any(r => r.Id == ur.RoleId && (r.Name == "staff" || r.Name == "admin"))))
-                .CountAsync();
+                .CountAsync(u => u.Role == "staff" || u.Role == "admin");
 
             var syncIssues = new List<object>();
 

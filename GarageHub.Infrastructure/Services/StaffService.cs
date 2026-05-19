@@ -2,135 +2,132 @@ using GarageHub.Application.DTOs;
 using GarageHub.Application.Interfaces;
 using GarageHub.Domain.Entities;
 using GarageHub.Infrastructure.Data;
-using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 
-namespace GarageHub.Application.Services;
+namespace GarageHub.Infrastructure.Services;
 
 public class StaffService : IStaffService
 {
     private readonly AppDbContext _db;
-    private readonly UserManager<User> _userManager;
     private readonly IUserProfileService _userProfileService;
 
-    public StaffService(AppDbContext db, UserManager<User> userManager, IUserProfileService userProfileService)
+    public StaffService(AppDbContext db, IUserProfileService userProfileService)
     {
         _db = db;
-        _userManager = userManager;
         _userProfileService = userProfileService;
     }
 
     public async Task<IEnumerable<StaffDto>> GetAllStaffAsync()
     {
         var staffUsers = await _db.Users
-            .Where(u => _db.UserRoles
-                .Any(ur => ur.UserId == u.Id &&
-                    _db.Roles.Any(r => r.Id == ur.RoleId && (r.Name == "staff" || r.Name == "admin"))))
+            .Where(u => u.Role == "staff" || u.Role == "admin")
             .ToListAsync();
 
         return staffUsers.Select(u => new StaffDto
         {
-            Id = u.Id,
+            Id = u.UserId,
             Name = $"{u.FirstName} {u.LastName}".Trim(),
             Email = u.Email ?? "",
             Phone = u.Phone ?? "",
-            Role = "staff",
+            Role = u.Role,
             Status = "active"
         });
     }
 
     public async Task<StaffDto> AddStaffAsync(AddStaffDto dto)
     {
-        var exists = await _userManager.FindByEmailAsync(dto.Email);
+        var exists = await _db.Users.FirstOrDefaultAsync(u => u.Email == dto.Email);
         if (exists != null)
+        {
             throw new Exception("Email already registered.");
+        }
 
         var user = new User
         {
             Email = dto.Email,
-            UserName = dto.Email,
             FirstName = dto.FirstName,
             LastName = dto.LastName,
             Phone = dto.Phone,
-            EmailConfirmed = true,
             CreatedAt = DateTime.UtcNow
         };
 
-        var result = await _userManager.CreateAsync(user,
-            string.IsNullOrEmpty(dto.Password) ? "DefaultPass@123" : dto.Password);
-
-        if (!result.Succeeded)
-        {
-            var errors = string.Join(", ", result.Errors.Select(e => e.Description));
-            throw new Exception($"Failed to create staff: {errors}");
-        }
-
-        await _userManager.AddToRoleAsync(user, "staff");
+        var password = string.IsNullOrEmpty(dto.Password) ? "DefaultPass@123" : dto.Password;
+        user.PasswordHashText = BCrypt.Net.BCrypt.HashPassword(password);
+        user.Role = "staff";
+        _db.Users.Add(user);
+        await _db.SaveChangesAsync();
 
         // Sync user data to the custom 'users' table
         await _userProfileService.CreateUserProfileAsync(user, "staff");
 
         return new StaffDto
         {
-            Id = user.Id,
+            Id = user.UserId,
             Name = $"{user.FirstName} {user.LastName}".Trim(),
             Email = user.Email ?? "",
             Phone = user.Phone ?? "",
-            Role = "staff",
+            Role = user.Role,
             Status = "active"
         };
     }
 
     public async Task<StaffDto> UpdateStaffAsync(int id, UpdateStaffDto dto)
     {
-        var user = await _userManager.FindByIdAsync(id.ToString())
+        var user = await _db.Users.FirstOrDefaultAsync(u => u.UserId == id)
             ?? throw new Exception("Staff member not found.");
 
         user.FirstName = dto.FirstName ?? user.FirstName;
         user.LastName = dto.LastName ?? user.LastName;
         user.Phone = dto.Phone ?? user.Phone;
+        user.Role = string.IsNullOrEmpty(user.Role) ? "staff" : user.Role;
 
-        await _userManager.UpdateAsync(user);
+        _db.Users.Update(user);
+        await _db.SaveChangesAsync();
 
         return new StaffDto
         {
-            Id = user.Id,
+            Id = user.UserId,
             Name = $"{user.FirstName} {user.LastName}".Trim(),
             Email = user.Email ?? "",
             Phone = user.Phone ?? "",
-            Role = "staff",
+            Role = user.Role,
             Status = "active"
         };
     }
 
     public async Task DeleteStaffAsync(int id)
     {
-        var user = await _userManager.FindByIdAsync(id.ToString())
+        var user = await _db.Users.FirstOrDefaultAsync(u => u.UserId == id)
             ?? throw new Exception("Staff member not found.");
-        await _userManager.DeleteAsync(user);
+        _db.Users.Remove(user);
+        await _db.SaveChangesAsync();
     }
 
     public async Task<bool> CreateStaffAsync(int userId)
     {
-        var user = await _userManager.FindByIdAsync(userId.ToString());
-        if (user == null) return false;
-        var currentRoles = await _userManager.GetRolesAsync(user);
-        if (!currentRoles.Contains("staff"))
+        var user = await _db.Users.FirstOrDefaultAsync(u => u.UserId == userId);
+        if (user == null)
         {
-            await _userManager.AddToRoleAsync(user, "staff");
+            return false;
         }
+
+        user.Role = "staff";
+        _db.Users.Update(user);
+        await _db.SaveChangesAsync();
         return true;
     }
 
     public async Task<bool> RemoveStaffAsync(int userId)
     {
-        var user = await _userManager.FindByIdAsync(userId.ToString());
-        if (user == null) return false;
-        var currentRoles = await _userManager.GetRolesAsync(user);
-        if (currentRoles.Contains("staff"))
+        var user = await _db.Users.FirstOrDefaultAsync(u => u.UserId == userId);
+        if (user == null)
         {
-            await _userManager.RemoveFromRoleAsync(user, "staff");
+            return false;
         }
+
+        user.Role = "customer";
+        _db.Users.Update(user);
+        await _db.SaveChangesAsync();
         return true;
     }
 
@@ -141,9 +138,7 @@ public class StaffService : IStaffService
 
         var searchLower = searchTerm.ToLower();
         var staffUsers = await _db.Users
-            .Where(u => _db.UserRoles
-                .Any(ur => ur.UserId == u.Id &&
-                    _db.Roles.Any(r => r.Id == ur.RoleId && (r.Name == "staff" || r.Name == "admin")))
+            .Where(u => (u.Role == "staff" || u.Role == "admin")
                 && (u.FirstName.ToLower().Contains(searchLower) ||
                     u.LastName.ToLower().Contains(searchLower) ||
                     u.Email!.ToLower().Contains(searchLower) ||
@@ -152,11 +147,11 @@ public class StaffService : IStaffService
 
         return staffUsers.Select(u => new StaffDto
         {
-            Id = u.Id,
+            Id = u.UserId,
             Name = $"{u.FirstName} {u.LastName}".Trim(),
             Email = u.Email ?? "",
             Phone = u.Phone ?? "",
-            Role = "staff",
+            Role = u.Role,
             Status = "active"
         });
     }

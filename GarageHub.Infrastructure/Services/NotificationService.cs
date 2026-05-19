@@ -2,7 +2,7 @@ using GarageHub.Application.DTOs.Notification;
 using GarageHub.Application.Interfaces;
 using GarageHub.Domain.Entities;
 
-namespace GarageHub.Application.Services
+namespace GarageHub.Infrastructure.Services
 {
     public class NotificationService : INotificationService
     {
@@ -18,7 +18,7 @@ namespace GarageHub.Application.Services
             var notifications = await _notificationRepository.GetAllAsync();
             return notifications.Select(n => new NotificationDto
             {
-                Id = n.Id,
+                Id = n.NotificationId,
                 Title = n.Title,
                 Message = n.Message,
                 Type = n.Type,
@@ -32,7 +32,7 @@ namespace GarageHub.Application.Services
             var notifications = await _notificationRepository.GetAllAsync();
             return notifications.Where(n => !n.IsRead).Select(n => new NotificationDto
             {
-                Id = n.Id,
+                Id = n.NotificationId,
                 Title = n.Title,
                 Message = n.Message,
                 Type = n.Type,
@@ -52,7 +52,7 @@ namespace GarageHub.Application.Services
             await _notificationRepository.AddAsync(notification);
             return new NotificationDto
             {
-                Id = notification.Id,
+                Id = notification.NotificationId,
                 Title = notification.Title,
                 Message = notification.Message,
                 Type = notification.Type,
