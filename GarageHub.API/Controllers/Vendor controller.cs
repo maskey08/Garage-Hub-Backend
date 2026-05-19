@@ -6,6 +6,8 @@ namespace GarageHub.API.Controllers
 {
     [ApiController]
     [Route("api/[controller]")]
+    [Route("api/vendors")]
+    [Microsoft.AspNetCore.Authorization.Authorize(Roles = "admin,staff,associate,inventory")]
     public class VendorController : ControllerBase
     {
         private readonly IVendorService _vendorService;

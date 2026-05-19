@@ -44,7 +44,8 @@ namespace GarageHub.Infrastructure.Services
                     PartId = p.Id,
                     PartName = p.PartName,
                     Sku = string.IsNullOrEmpty(p.PartNumber) ? $"SKU-{p.Id}" : p.PartNumber,
-                    CurrentStock = p.StockQuantity
+                    CurrentStock = p.StockQuantity,
+                    MinThreshold = 10
                 })
                 .ToList();
         }

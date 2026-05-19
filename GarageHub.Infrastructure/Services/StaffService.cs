@@ -29,7 +29,8 @@ public class StaffService : IStaffService
             Name = $"{u.FirstName} {u.LastName}".Trim(),
             Email = u.Email ?? "",
             Phone = u.Phone ?? "",
-            Role = u.Role,
+            Role = u.SubRole ?? u.Role,
+            SubRole = u.SubRole,
             Status = "active"
         });
     }
@@ -42,12 +43,15 @@ public class StaffService : IStaffService
             throw new Exception("Email already registered.");
         }
 
+        var subRole = NormalizeSubRole(dto.SubRole);
+
         var user = new User
         {
             Email = dto.Email,
             FirstName = dto.FirstName,
             LastName = dto.LastName,
             Phone = dto.Phone,
+            SubRole = subRole,
             CreatedAt = DateTime.UtcNow
         };
 
@@ -66,7 +70,8 @@ public class StaffService : IStaffService
             Name = $"{user.FirstName} {user.LastName}".Trim(),
             Email = user.Email ?? "",
             Phone = user.Phone ?? "",
-            Role = user.Role,
+            Role = user.SubRole ?? user.Role,
+            SubRole = user.SubRole,
             Status = "active"
         };
     }
@@ -80,6 +85,7 @@ public class StaffService : IStaffService
         user.LastName = dto.LastName ?? user.LastName;
         user.Phone = dto.Phone ?? user.Phone;
         user.Role = string.IsNullOrEmpty(user.Role) ? "staff" : user.Role;
+        user.SubRole = NormalizeSubRole(dto.SubRole) ?? user.SubRole;
 
         _db.Users.Update(user);
         await _db.SaveChangesAsync();
@@ -90,7 +96,8 @@ public class StaffService : IStaffService
             Name = $"{user.FirstName} {user.LastName}".Trim(),
             Email = user.Email ?? "",
             Phone = user.Phone ?? "",
-            Role = user.Role,
+            Role = user.SubRole ?? user.Role,
+            SubRole = user.SubRole,
             Status = "active"
         };
     }
@@ -151,8 +158,33 @@ public class StaffService : IStaffService
             Name = $"{u.FirstName} {u.LastName}".Trim(),
             Email = u.Email ?? "",
             Phone = u.Phone ?? "",
-            Role = u.Role,
+            Role = u.SubRole ?? u.Role,
+            SubRole = u.SubRole,
             Status = "active"
         });
+    }
+
+    private static string? NormalizeSubRole(string? subRole)
+    {
+        if (string.IsNullOrWhiteSpace(subRole))
+        {
+            return null;
+        }
+
+        var normalized = subRole.Trim();
+        return normalized switch
+        {
+            "inventory_manager" => "inventory_manager",
+            "Inventory manager" => "inventory_manager",
+            "administrator" => "administrator",
+            "Administrator" => "administrator",
+            "sales associate" => "sales_associate",
+            "sales_associate" => "sales_associate",
+            "Sales associate" => "sales_associate",
+            "vendor_liaison" => "vendor_liaison",
+            "vendor Liason" => "vendor_liaison",
+            "Vendor Liason" => "vendor_liaison",
+            _ => throw new Exception("SubRole must be Administrator, Inventory manager, sales associate, or vendor Liason.")
+        };
     }
 }

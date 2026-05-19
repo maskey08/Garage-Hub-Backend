@@ -62,46 +62,6 @@ namespace GarageHub.Infrastructure.Migrations
                     b.ToTable("appointments", (string)null);
                 });
 
-            modelBuilder.Entity("GarageHub.Domain.Entities.Customer", b =>
-                {
-                    b.Property<int>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("integer");
-
-                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
-
-                    b.Property<string>("Address")
-                        .IsRequired()
-                        .HasColumnType("text");
-
-                    b.Property<decimal>("CreditBalance")
-                        .HasColumnType("numeric");
-
-                    b.Property<string>("Email")
-                        .IsRequired()
-                        .HasColumnType("text");
-
-                    b.Property<string>("FullName")
-                        .IsRequired()
-                        .HasColumnType("text");
-
-                    b.Property<string>("Phone")
-                        .IsRequired()
-                        .HasColumnType("text");
-
-                    b.Property<DateTime>("RegisteredDate")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<int>("UserId")
-                        .HasColumnType("integer");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("UserId");
-
-                    b.ToTable("customers");
-                });
-
             modelBuilder.Entity("GarageHub.Domain.Entities.Invoice", b =>
                 {
                     b.Property<int>("Id")
@@ -210,6 +170,8 @@ namespace GarageHub.Infrastructure.Migrations
 
                     b.HasKey("Id");
 
+                    b.HasIndex("VendorId");
+
                     b.ToTable("parts");
                 });
 
@@ -246,7 +208,7 @@ namespace GarageHub.Infrastructure.Migrations
                     b.ToTable("part_requests", (string)null);
                 });
 
-            modelBuilder.Entity("GarageHub.Domain.Entities.Purchase", b =>
+            modelBuilder.Entity("GarageHub.Domain.Entities.PurchaseInvoice", b =>
                 {
                     b.Property<int>("Id")
                         .ValueGeneratedOnAdd()
@@ -254,26 +216,59 @@ namespace GarageHub.Infrastructure.Migrations
 
                     NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
 
-                    b.Property<int>("CustomerId")
-                        .HasColumnType("integer");
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<DateTime>("InvoiceDate")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("InvoiceNumber")
+                        .IsRequired()
+                        .HasColumnType("text");
 
                     b.Property<bool>("IsPaid")
                         .HasColumnType("boolean");
 
-                    b.Property<DateTime?>("PaymentDueDate")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<DateTime>("PurchaseDate")
-                        .HasColumnType("timestamp with time zone");
-
                     b.Property<decimal>("TotalAmount")
+                        .HasColumnType("numeric");
+
+                    b.Property<int>("VendorId")
+                        .HasColumnType("integer");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("VendorId");
+
+                    b.ToTable("purchase_invoices", (string)null);
+                });
+
+            modelBuilder.Entity("GarageHub.Domain.Entities.PurchaseInvoiceItem", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
+
+                    b.Property<int>("PartId")
+                        .HasColumnType("integer");
+
+                    b.Property<int>("PurchaseInvoiceId")
+                        .HasColumnType("integer");
+
+                    b.Property<int>("Quantity")
+                        .HasColumnType("integer");
+
+                    b.Property<decimal>("UnitPrice")
                         .HasColumnType("numeric");
 
                     b.HasKey("Id");
 
-                    b.HasIndex("CustomerId");
+                    b.HasIndex("PartId");
 
-                    b.ToTable("purchase");
+                    b.HasIndex("PurchaseInvoiceId");
+
+                    b.ToTable("purchase_invoice_items", (string)null);
                 });
 
             modelBuilder.Entity("GarageHub.Domain.Entities.Review", b =>
@@ -509,6 +504,10 @@ namespace GarageHub.Infrastructure.Migrations
                         .HasMaxLength(20)
                         .HasColumnType("character varying(20)");
 
+                    b.Property<string>("SubRole")
+                        .HasMaxLength(30)
+                        .HasColumnType("character varying(30)");
+
                     b.Property<decimal>("TotalSpent")
                         .HasColumnType("numeric(12,2)");
 
@@ -524,9 +523,6 @@ namespace GarageHub.Infrastructure.Migrations
                         .HasColumnType("integer");
 
                     NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("VehicleId"));
-
-                    b.Property<int>("CustomerId")
-                        .HasColumnType("integer");
 
                     b.Property<string>("Make")
                         .IsRequired()
@@ -552,11 +548,41 @@ namespace GarageHub.Infrastructure.Migrations
 
                     b.HasKey("VehicleId");
 
-                    b.HasIndex("CustomerId");
-
                     b.HasIndex("UserId");
 
                     b.ToTable("vehicles", (string)null);
+                });
+
+            modelBuilder.Entity("GarageHub.Domain.Entities.Vendor", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
+
+                    b.Property<string>("Address")
+                        .HasColumnType("text");
+
+                    b.Property<string>("ContactPerson")
+                        .HasColumnType("text");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("Email")
+                        .HasColumnType("text");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<string>("Phone")
+                        .HasColumnType("text");
+
+                    b.HasKey("Id");
+
+                    b.ToTable("vendors", (string)null);
                 });
 
             modelBuilder.Entity("GarageHub.Domain.Entities.Appointment", b =>
@@ -576,17 +602,6 @@ namespace GarageHub.Infrastructure.Migrations
                     b.Navigation("Customer");
 
                     b.Navigation("Vehicle");
-                });
-
-            modelBuilder.Entity("GarageHub.Domain.Entities.Customer", b =>
-                {
-                    b.HasOne("GarageHub.Domain.Entities.User", "User")
-                        .WithMany()
-                        .HasForeignKey("UserId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.Navigation("User");
                 });
 
             modelBuilder.Entity("GarageHub.Domain.Entities.Invoice", b =>
@@ -611,6 +626,13 @@ namespace GarageHub.Infrastructure.Migrations
                     b.Navigation("User");
                 });
 
+            modelBuilder.Entity("GarageHub.Domain.Entities.Part", b =>
+                {
+                    b.HasOne("GarageHub.Domain.Entities.Vendor", null)
+                        .WithMany("Parts")
+                        .HasForeignKey("VendorId");
+                });
+
             modelBuilder.Entity("GarageHub.Domain.Entities.PartRequest", b =>
                 {
                     b.HasOne("GarageHub.Domain.Entities.User", "Customer")
@@ -622,15 +644,34 @@ namespace GarageHub.Infrastructure.Migrations
                     b.Navigation("Customer");
                 });
 
-            modelBuilder.Entity("GarageHub.Domain.Entities.Purchase", b =>
+            modelBuilder.Entity("GarageHub.Domain.Entities.PurchaseInvoice", b =>
                 {
-                    b.HasOne("GarageHub.Domain.Entities.Customer", "Customer")
-                        .WithMany("Purchases")
-                        .HasForeignKey("CustomerId")
+                    b.HasOne("GarageHub.Domain.Entities.Vendor", "Vendor")
+                        .WithMany("PurchaseInvoices")
+                        .HasForeignKey("VendorId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("Vendor");
+                });
+
+            modelBuilder.Entity("GarageHub.Domain.Entities.PurchaseInvoiceItem", b =>
+                {
+                    b.HasOne("GarageHub.Domain.Entities.Part", "Part")
+                        .WithMany()
+                        .HasForeignKey("PartId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("GarageHub.Domain.Entities.PurchaseInvoice", "PurchaseInvoice")
+                        .WithMany("Items")
+                        .HasForeignKey("PurchaseInvoiceId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
-                    b.Navigation("Customer");
+                    b.Navigation("Part");
+
+                    b.Navigation("PurchaseInvoice");
                 });
 
             modelBuilder.Entity("GarageHub.Domain.Entities.Review", b =>
@@ -710,19 +751,11 @@ namespace GarageHub.Infrastructure.Migrations
 
             modelBuilder.Entity("GarageHub.Domain.Entities.Vehicle", b =>
                 {
-                    b.HasOne("GarageHub.Domain.Entities.Customer", "Customer")
-                        .WithMany("Vehicles")
-                        .HasForeignKey("CustomerId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
                     b.HasOne("GarageHub.Domain.Entities.User", "User")
                         .WithMany("Vehicles")
                         .HasForeignKey("UserId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
-
-                    b.Navigation("Customer");
 
                     b.Navigation("User");
                 });
@@ -732,11 +765,9 @@ namespace GarageHub.Infrastructure.Migrations
                     b.Navigation("Review");
                 });
 
-            modelBuilder.Entity("GarageHub.Domain.Entities.Customer", b =>
+            modelBuilder.Entity("GarageHub.Domain.Entities.PurchaseInvoice", b =>
                 {
-                    b.Navigation("Purchases");
-
-                    b.Navigation("Vehicles");
+                    b.Navigation("Items");
                 });
 
             modelBuilder.Entity("GarageHub.Domain.Entities.Sale", b =>
@@ -767,6 +798,13 @@ namespace GarageHub.Infrastructure.Migrations
             modelBuilder.Entity("GarageHub.Domain.Entities.Vehicle", b =>
                 {
                     b.Navigation("Appointments");
+                });
+
+            modelBuilder.Entity("GarageHub.Domain.Entities.Vendor", b =>
+                {
+                    b.Navigation("Parts");
+
+                    b.Navigation("PurchaseInvoices");
                 });
 #pragma warning restore 612, 618
         }

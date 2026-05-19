@@ -7,7 +7,7 @@ namespace GarageHub.API.Controllers;
 
 [ApiController]
 [Route("api/[controller]")]
-[Authorize(Roles = "admin")]
+[Authorize(Roles = "admin,staff,associate,inventory")]
 public class PartsController : ControllerBase
 {
     private readonly IPartService _partService;

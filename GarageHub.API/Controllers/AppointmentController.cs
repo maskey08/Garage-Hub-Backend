@@ -8,7 +8,7 @@ namespace GarageHub.API.Controllers;
 
 [ApiController]
 [Route("api/[controller]")]
-[Authorize(Roles = "customer")]
+[Authorize] // Require authentication but don't restrict by role at class level
 public class AppointmentController : ControllerBase
 {
     private readonly IAppointmentService _appointmentService;
@@ -18,6 +18,7 @@ public class AppointmentController : ControllerBase
         int.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier)!);
 
     [HttpPost]
+    [Authorize(Roles = "customer")]
     public async Task<IActionResult> Book(AppointmentCreateDto dto)
     {
         try
@@ -32,6 +33,7 @@ public class AppointmentController : ControllerBase
     }
 
     [HttpGet]
+    [Authorize(Roles = "customer")]
     public async Task<IActionResult> GetMine()
     {
         try
@@ -46,6 +48,7 @@ public class AppointmentController : ControllerBase
     }
 
     [HttpPatch("{id}/cancel")]
+    [Authorize(Roles = "customer")]
     public async Task<IActionResult> Cancel(int id)
     {
         var result = await _appointmentService.CancelAsync(id, GetUserId());

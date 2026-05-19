@@ -15,7 +15,6 @@ public class AppDbContext : DbContext
     public DbSet<SalesInvoice> SalesInvoices => Set<SalesInvoice>();
     public DbSet<SalesInvoiceItem> SalesInvoiceItems => Set<SalesInvoiceItem>();
     public DbSet<Notification> Notifications => Set<Notification>();
-    public DbSet<Customer> Customers => Set<Customer>();
     public DbSet<Part> Parts { get; set; }
     public DbSet<Sale> Sales { get; set; }
     public DbSet<SaleItem> SaleItems { get; set; }
@@ -47,6 +46,7 @@ public class AppDbContext : DbContext
         modelBuilder.Entity<User>().Property(u => u.Phone).HasMaxLength(20);
         modelBuilder.Entity<User>().Property(u => u.PasswordHashText).HasMaxLength(255);
         modelBuilder.Entity<User>().Property(u => u.Role).HasMaxLength(20);
+        modelBuilder.Entity<User>().Property(u => u.SubRole).HasMaxLength(30);
         modelBuilder.Entity<User>().Property(u => u.TotalSpent).HasColumnType("numeric(12,2)");
         modelBuilder.Entity<User>().Property(u => u.CreditBalance).HasColumnType("numeric(12,2)");
         modelBuilder.Entity<User>().Property(u => u.CreditDueDate).HasColumnType("date");
@@ -212,6 +212,15 @@ public class AppDbContext : DbContext
              .HasForeignKey(p => p.PartId)
              .OnDelete(DeleteBehavior.Restrict);
         });
+        modelBuilder.Entity<PurchaseInvoice>()
+            .HasOne(pi => pi.Vendor)
+            .WithMany(v => v.PurchaseInvoices)
+            .HasForeignKey(pi => pi.VendorId);
+
+                modelBuilder.Entity<PurchaseInvoiceItem>()
+                    .HasOne(pii => pii.Part)
+                    .WithMany()
+                    .HasForeignKey(pii => pii.PartId);
     }
 
     private static string ToSnakeCase(string input)

@@ -1,7 +1,9 @@
 using GarageHub.Application.DTOs;
 using GarageHub.Application.Interfaces;
+using GarageHub.Infrastructure.Data;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
 
 namespace GarageHub.API.Controllers;
 
@@ -11,10 +13,50 @@ namespace GarageHub.API.Controllers;
 public class StaffCustomersController : ControllerBase
 {
     private readonly ICustomerService _customerService;
+    private readonly AppDbContext _db;
 
-    public StaffCustomersController(ICustomerService customerService)
+    public StaffCustomersController(ICustomerService customerService, AppDbContext db)
     {
         _customerService = customerService;
+        _db = db;
+    }
+
+    /// <summary>
+    /// Get customer detail including vehicles
+    /// </summary>
+    [HttpGet("{id:int}")]
+    public async Task<IActionResult> GetCustomerDetails(int id)
+    {
+        try
+        {
+            var customer = await _customerService.GetCustomerDetailsAsync(id);
+            return Ok(customer);
+        }
+        catch (KeyNotFoundException ex)
+        {
+            return NotFound(new { message = ex.Message });
+        }
+        catch (Exception ex)
+        {
+            return BadRequest(new { message = ex.Message });
+        }
+    }
+
+    /// <summary>
+    /// Get customer purchase history with item details
+    /// </summary>
+    [HttpGet("{id:int}/purchases")]
+    public async Task<IActionResult> GetCustomerPurchases(int id)
+    {
+        try
+        {
+            var purchases = await _customerService.GetCustomerPurchaseHistoryAsync(id);
+            return Ok(purchases);
+        }
+        catch (Exception ex)
+        {
+            return BadRequest(new { message = ex.Message });
+        }
     }
 
     /// <summary>
@@ -38,11 +80,29 @@ public class StaffCustomersController : ControllerBase
     /// Search customers by name, email, or phone
     /// </summary>
     [HttpGet("search")]
-    public async Task<IActionResult> SearchCustomers([FromQuery] string searchTerm)
+    public async Task<IActionResult> SearchCustomers([FromQuery] string? searchTerm, [FromQuery] string? name, [FromQuery] string? phone, [FromQuery] string? vehicleNo, [FromQuery] string? id)
     {
         try
         {
-            var customers = await _customerService.SearchCustomersAsync(searchTerm);
+            var resolvedSearch = searchTerm;
+            if (string.IsNullOrWhiteSpace(resolvedSearch))
+            {
+                resolvedSearch = name;
+            }
+            if (string.IsNullOrWhiteSpace(resolvedSearch))
+            {
+                resolvedSearch = phone;
+            }
+            if (string.IsNullOrWhiteSpace(resolvedSearch))
+            {
+                resolvedSearch = vehicleNo;
+            }
+            if (string.IsNullOrWhiteSpace(resolvedSearch))
+            {
+                resolvedSearch = id;
+            }
+
+            var customers = await _customerService.SearchCustomersAsync(resolvedSearch ?? string.Empty);
             return Ok(customers);
         }
         catch (Exception ex)
@@ -84,4 +144,92 @@ public class StaffCustomersController : ControllerBase
             return BadRequest(new { message = ex.Message });
         }
     }
+
+    [HttpPut("{id:int}")]
+    public async Task<IActionResult> UpdateCustomer(int id, [FromBody] UpdateCustomerRequestDto dto)
+    {
+        try
+        {
+            var customer = await _db.Users.FirstOrDefaultAsync(u => u.UserId == id && u.Role == "customer");
+            if (customer == null)
+                return NotFound(new { message = "Customer not found" });
+
+            customer.FirstName = dto.FirstName;
+            customer.LastName = dto.LastName ?? string.Empty;
+            customer.Phone = dto.Phone;
+            customer.Email = dto.Email;
+            await _db.SaveChangesAsync();
+
+            return Ok(await _customerService.GetCustomerDetailsAsync(id));
+        }
+        catch (KeyNotFoundException ex)
+        {
+            return NotFound(new { message = ex.Message });
+        }
+        catch (Exception ex)
+        {
+            return BadRequest(new { message = ex.Message });
+        }
+    }
+
+    [HttpPost("{id:int}/vehicles")]
+    public async Task<IActionResult> AddVehicle(int id, [FromBody] AddVehicleDto dto)
+    {
+        var customer = await _db.Users.FirstOrDefaultAsync(u => u.UserId == id && u.Role == "customer");
+        if (customer == null)
+            return NotFound(new { message = "Customer not found" });
+
+        var vehicle = new GarageHub.Domain.Entities.Vehicle
+        {
+            UserId = id,
+            VehicleNumber = dto.VehicleNumber,
+            Make = dto.Make,
+            Model = dto.Model,
+            Year = dto.Year,
+            Vin = dto.Vin ?? string.Empty
+        };
+
+        _db.Vehicles.Add(vehicle);
+        await _db.SaveChangesAsync();
+
+        return Ok(await _customerService.GetCustomerDetailsAsync(id));
+    }
+
+    [HttpPut("{id:int}/vehicles/{vehicleId:int}")]
+    public async Task<IActionResult> UpdateVehicle(int id, int vehicleId, [FromBody] AddVehicleDto dto)
+    {
+        var vehicle = await _db.Vehicles.FirstOrDefaultAsync(v => v.VehicleId == vehicleId && v.UserId == id);
+        if (vehicle == null)
+            return NotFound(new { message = "Vehicle not found" });
+
+        vehicle.VehicleNumber = dto.VehicleNumber;
+        vehicle.Make = dto.Make;
+        vehicle.Model = dto.Model;
+        vehicle.Year = dto.Year;
+        vehicle.Vin = dto.Vin ?? string.Empty;
+        await _db.SaveChangesAsync();
+
+        return Ok(await _customerService.GetCustomerDetailsAsync(id));
+    }
+
+    [HttpDelete("{id:int}/vehicles/{vehicleId:int}")]
+    public async Task<IActionResult> DeleteVehicle(int id, int vehicleId)
+    {
+        var vehicle = await _db.Vehicles.FirstOrDefaultAsync(v => v.VehicleId == vehicleId && v.UserId == id);
+        if (vehicle == null)
+            return NotFound(new { message = "Vehicle not found" });
+
+        _db.Vehicles.Remove(vehicle);
+        await _db.SaveChangesAsync();
+        return NoContent();
+    }
+}
+
+public class UpdateCustomerRequestDto
+{
+    public string FirstName { get; set; } = string.Empty;
+    public string? LastName { get; set; }
+    public string Email { get; set; } = string.Empty;
+    public string Phone { get; set; } = string.Empty;
+    public string? Address { get; set; }
 }

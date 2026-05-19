@@ -9,6 +9,7 @@ public class User
     public string Phone { get; set; } = string.Empty;
     public string PasswordHashText { get; set; } = string.Empty;
     public string Role { get; set; } = "customer";
+    public string? SubRole { get; set; }
     public decimal TotalSpent { get; set; }
     public decimal CreditBalance { get; set; }
     public DateOnly? CreditDueDate { get; set; }

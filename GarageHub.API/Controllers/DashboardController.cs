@@ -6,7 +6,7 @@ namespace GarageHub.API.Controllers;
 
 [ApiController]
 [Route("api/[controller]")]
-[Authorize(Roles = "admin")]
+//[Authorize(Roles = "admin")]
 public class DashboardController : ControllerBase
 {
     private readonly IDashboardService _dashboardService;

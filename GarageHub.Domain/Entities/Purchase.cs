@@ -9,6 +9,6 @@ namespace GarageHub.Domain.Entities
         public bool IsPaid { get; set; } = false;
         public DateTime? PaymentDueDate { get; set; }
 
-        public Customer? Customer { get; set; }
+        public User? Customer { get; set; }
     }
 }

@@ -62,16 +62,23 @@ namespace GarageHub.Infrastructure.Services
                         PartId = item.PartId,
                         Quantity = item.Quantity,
                         UnitPrice = (float)part.Price,
+                        TotalPrice = (float)totalPrice,
                     });
                 }
 
-                decimal taxAmount = subTotal * 0.18m;
-                decimal grandTotal = subTotal + taxAmount;
+                var user = await _context.Users.FindAsync(request.CustomerId);
+
+                decimal discountAmount = 0m;
+                if (user != null && user.Role == "customer")
+                {
+                    discountAmount = subTotal * 0.10m;
+                }
+
+                decimal taxAmount = (subTotal - discountAmount) * 0.18m;
+                decimal grandTotal = subTotal - discountAmount + taxAmount;
 
 
                 //Redeem loyalty logic
-                var user = await _context.Users.FindAsync(request.CustomerId);
-
                 int pointsToRedeem = request.PointsToRedeem;
 
                 if (user != null && pointsToRedeem > 0)
@@ -90,6 +97,7 @@ namespace GarageHub.Infrastructure.Services
                 }
 
                 sale.Subtotal = subTotal;
+                sale.DiscountApplied = discountAmount;
                 sale.TotalAmount = grandTotal;
 
                 // earn Loyalty Logic

@@ -40,10 +40,15 @@ builder.Services.AddScoped<IPurchaseInvoiceService, PurchaseInvoiceService>();
 builder.Services.AddScoped<IReportService, ReportService>();
 builder.Services.AddScoped<ISaleService, SaleService>();
 builder.Services.AddScoped<IEmailService, EmailService>();
+builder.Services.AddHostedService<NotificationBackgroundService>();
 
+// ── JWT ───────────────────────────────────────────────────────
 // ── JWT ───────────────────────────────────────────────────────
 var jwtKey = builder.Configuration["Jwt:Key"]
     ?? throw new Exception("Jwt:Key is missing from appsettings.json");
+
+// ✅ Add this to see detailed JWT errors in development
+Microsoft.IdentityModel.Logging.IdentityModelEventSource.ShowPII = true;
 
 builder.Services.AddAuthentication(options =>
 {
@@ -53,6 +58,8 @@ builder.Services.AddAuthentication(options =>
 })
 .AddJwtBearer(options =>
 {
+    options.SaveToken = true;
+    options.RequireHttpsMetadata = false; // ← allow http in dev
     options.TokenValidationParameters = new TokenValidationParameters
     {
         ValidateIssuer = true,
@@ -65,45 +72,32 @@ builder.Services.AddAuthentication(options =>
             Encoding.UTF8.GetBytes(jwtKey)),
         RoleClaimType = "http://schemas.microsoft.com/ws/2008/06/identity/claims/role",
         NameClaimType = ClaimTypes.NameIdentifier,
-        ClockSkew = TimeSpan.Zero // Reduce clock skew tolerance
+        ClockSkew = TimeSpan.FromMinutes(5)
     };
 
-    // Handle token from both Authorization header and cookies
     options.Events = new JwtBearerEvents
     {
-        OnMessageReceived = context =>
-        {
-            // First try Authorization header
-            var token = context.Request.Headers["Authorization"]
-                .FirstOrDefault()?.Split(" ").Last();
-            
-            // If no header token, try cookie
-            if (string.IsNullOrEmpty(token))
-            {
-                token = context.Request.Cookies["AuthToken"];
-            }
-            
-            if (!string.IsNullOrEmpty(token))
-            {
-                context.Token = token;
-            }
-            
-            return Task.CompletedTask;
-        },
         OnAuthenticationFailed = context =>
         {
-            Console.WriteLine($"❌ Auth failed: {context.Exception.Message}");
+            // ✅ Now shows full error with ShowPII = true
+            Console.WriteLine($"❌ Auth failed: {context.Exception.GetType().Name}: {context.Exception.Message}");
+            if (context.Exception.InnerException != null)
+                Console.WriteLine($"   Inner: {context.Exception.InnerException.Message}");
             return Task.CompletedTask;
         },
-        OnForbidden = context =>
+        OnChallenge = context =>
         {
-            Console.WriteLine("❌ Forbidden — role check failed");
-            Console.WriteLine($"   Claims: {string.Join(", ", context.HttpContext.User.Claims.Select(c => $"{c.Type}={c.Value}"))}");
+            Console.WriteLine($" Challenge issued for: {context.Request.Path}");
+            Console.WriteLine($"   Error: {context.Error}");
+            Console.WriteLine($"   Description: {context.ErrorDescription}");
             return Task.CompletedTask;
         },
         OnTokenValidated = context =>
         {
-            Console.WriteLine($"✅ Token valid for user: {context.HttpContext.User.FindFirst(ClaimTypes.NameIdentifier)?.Value}");
+            var userId = context.Principal?.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+            var role = context.Principal?.FindFirst(
+                "http://schemas.microsoft.com/ws/2008/06/identity/claims/role")?.Value;
+            Console.WriteLine($"✅ Token valid - UserId: {userId}, Role: {role}");
             return Task.CompletedTask;
         }
     };
@@ -117,6 +111,9 @@ builder.Services.AddCors(options =>
     options.AddPolicy("AllowFrontend", policy =>
     {
         policy.SetIsOriginAllowed(_ => true)
+              .WithOrigins("http://localhost:5173")
+              .WithOrigins("http://localhost:5174")
+              .AllowCredentials()
               .AllowAnyHeader()
               .AllowAnyMethod();
     });
@@ -131,6 +128,8 @@ if (app.Environment.IsDevelopment())
 {
     app.MapOpenApi();
 }
+
+
 
 // ── Database setup ────────────────────────────────────────────
 using (var scope = app.Services.CreateScope())
@@ -156,10 +155,48 @@ await SeedAdminAsync(app);
 
 // ── Middleware pipeline (ORDER MATTERS) ───────────────────────
 app.UseHttpsRedirection();
-app.UseCors("AllowFrontend");       // ← CORS first
-app.UseAuthentication();            // ← then auth
+app.UseRouting();                   // ← routing support
+app.UseCors("AllowFrontend");       // ← CORS first (MUST be before auth)
+app.UseAuthentication();            // ← then authentication
 app.UseAuthorization();             // ← then authorization
-app.MapControllers();
+
+// ── Global error handling ─────────────────────────────────────
+app.UseExceptionHandler(builder =>
+{
+    builder.Run(async context =>
+    {
+        context.Response.ContentType = "application/json";
+        context.Response.StatusCode = StatusCodes.Status500InternalServerError;
+        var error = context.Features.Get<Microsoft.AspNetCore.Diagnostics.IExceptionHandlerFeature>();
+        if (error?.Error is KeyNotFoundException)
+        {
+            context.Response.StatusCode = StatusCodes.Status404NotFound;
+        }
+        await context.Response.WriteAsJsonAsync(new
+        {
+            message = error?.Error?.Message ?? "An unexpected error occurred",
+            statusCode = context.Response.StatusCode
+        });
+    });
+});
+
+app.MapControllers();               // ← then route mapping
+
+// ── Catch 404 for unmapped routes ─────────────────────────────
+app.Use(async (context, next) =>
+{
+    await next();
+    if (context.Response.StatusCode == 404 && !context.Response.HasStarted)
+    {
+        context.Response.ContentType = "application/json";
+        await context.Response.WriteAsJsonAsync(new
+        {
+            message = $"Endpoint not found: {context.Request.Method} {context.Request.Path}",
+            statusCode = 404
+        });
+    }
+});
+
 
 // ── Diagnostic endpoints ──────────────────────────────────────
 app.MapGet("/api/diagnostics/db-status", async (AppDbContext db) =>

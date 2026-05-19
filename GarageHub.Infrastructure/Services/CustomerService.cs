@@ -19,13 +19,13 @@ public class CustomerService : ICustomerService
     }
 
     public async Task<User?> GetProfileAsync(int userId)
-        => await _db.Users.FirstOrDefaultAsync(u => u.UserId == userId);
+        => await _db.Users.FirstOrDefaultAsync(u => u.UserId == userId && u.Role == "customer");
 
     public async Task<User> UpdateProfileAsync(int userId, string firstName, string lastName, string phone)
     {
-        var user = await _db.Users.FirstOrDefaultAsync(u => u.UserId == userId);
+        var user = await _db.Users.FirstOrDefaultAsync(u => u.UserId == userId && u.Role == "customer");
         if (user == null)
-            throw new KeyNotFoundException("User not found");
+            throw new KeyNotFoundException("Customer not found");
 
         user.FirstName = firstName;
         user.LastName = lastName;
@@ -77,6 +77,65 @@ public class CustomerService : ICustomerService
         };
     }
 
+    public async Task<CustomerDto> GetCustomerDetailsAsync(int customerId)
+    {
+        var user = await _db.Users
+            .Include(u => u.Vehicles)
+            .FirstOrDefaultAsync(u => u.UserId == customerId && u.Role == "customer");
+
+        if (user == null)
+            throw new KeyNotFoundException("Customer not found");
+
+        return new CustomerDto
+        {
+            Id = user.UserId,
+            FullName = $"{user.FirstName} {user.LastName}".Trim(),
+            Email = user.Email ?? string.Empty,
+            Phone = user.Phone ?? string.Empty,
+            Address = string.Empty,
+            RegisteredDate = user.CreatedAt,
+            CreditBalance = user.CreditBalance,
+            LoyaltyPoints = user.LoyaltyPoints,
+            Vehicles = user.Vehicles.Select(v => new VehicleDto
+            {
+                Id = v.VehicleId,
+                VehicleNumber = v.VehicleNumber,
+                Brand = v.Make,
+                Model = v.Model,
+                Year = v.Year,
+                Color = string.Empty
+            }).ToList(),
+            Purchases = new()
+        };
+    }
+
+    public async Task<IEnumerable<PurchaseSummaryDto>> GetCustomerPurchaseHistoryAsync(int customerId)
+    {
+        var purchases = await _db.SalesInvoices
+            .Include(s => s.Items)
+            .ThenInclude(i => i.Part)
+            .Where(s => s.CustomerId == customerId)
+            .OrderByDescending(s => s.SaleDate)
+            .ToListAsync();
+
+        return purchases.Select(p => new PurchaseSummaryDto
+        {
+            Id = p.SaleId,
+            PurchaseDate = p.SaleDate,
+            TotalAmount = (decimal)p.TotalAmount,
+            IsPaid = p.PaymentStatus?.ToLower() == "paid",
+            InvoiceNumber = $"INV-{p.SaleId}",
+            Items = p.Items.Select(i => new PurchaseItemDto
+            {
+                PartId = i.PartId,
+                PartName = i.Part.PartName,
+                Quantity = i.Quantity,
+                UnitPrice = (decimal)i.UnitPrice,
+                TotalPrice = (decimal)i.TotalPrice
+            }).ToList()
+        });
+    }
+
     public async Task<CustomerDto> CreateCustomerAsync(CreateCustomerDto dto)
     {
         // Check if email already exists
@@ -91,16 +150,31 @@ public class CustomerService : ICustomerService
             FirstName = dto.FirstName,
             LastName = dto.LastName,
             Phone = dto.Phone,
+            Role = "customer",
             CreatedAt = DateTime.UtcNow
         };
 
         user.PasswordHashText = BCrypt.Net.BCrypt.HashPassword(dto.Password);
-        user.Role = "customer";
         _db.Users.Add(user);
         await _db.SaveChangesAsync();
 
         // Sync user data to the custom 'users' table
         await _userProfileService.CreateUserProfileAsync(user, "customer");
+
+        if (!string.IsNullOrWhiteSpace(dto.VehicleNumber))
+        {
+            var vehicle = new Vehicle
+            {
+                UserId = user.UserId,
+                VehicleNumber = dto.VehicleNumber,
+                Make = dto.VehicleMake ?? string.Empty,
+                Model = dto.VehicleModel ?? string.Empty,
+                Year = dto.VehicleYear ?? DateTime.UtcNow.Year,
+                Vin = dto.VehicleVin ?? string.Empty
+            };
+            _db.Vehicles.Add(vehicle);
+            await _db.SaveChangesAsync();
+        }
 
         // Return customer DTO
         return new CustomerDto
@@ -112,7 +186,21 @@ public class CustomerService : ICustomerService
             Address = dto.Address ?? string.Empty,
             RegisteredDate = user.CreatedAt,
             CreditBalance = 0,
-            Vehicles = new(),
+            LoyaltyPoints = user.LoyaltyPoints,
+            Vehicles = string.IsNullOrWhiteSpace(dto.VehicleNumber)
+                ? new()
+                : new List<VehicleDto>
+                {
+                    new()
+                    {
+                        Id = 0,
+                        VehicleNumber = dto.VehicleNumber,
+                        Brand = dto.VehicleMake ?? string.Empty,
+                        Model = dto.VehicleModel ?? string.Empty,
+                        Year = dto.VehicleYear ?? DateTime.UtcNow.Year,
+                        Color = string.Empty
+                    }
+                },
             Purchases = new()
         };
     }
@@ -155,6 +243,7 @@ public class CustomerService : ICustomerService
     public async Task<IEnumerable<CustomerDto>> GetAllCustomersAsync()
     {
         var customers = await _db.Users
+            .Include(u => u.Vehicles)
             .Where(u => u.Role == "customer")
             .ToListAsync();
 
@@ -166,8 +255,17 @@ public class CustomerService : ICustomerService
             Phone = u.Phone ?? string.Empty,
             Address = string.Empty,
             RegisteredDate = u.CreatedAt,
-            CreditBalance = 0,
-            Vehicles = new(),
+            CreditBalance = u.CreditBalance,
+            LoyaltyPoints = u.LoyaltyPoints,
+            Vehicles = u.Vehicles.Select(v => new VehicleDto
+            {
+                Id = v.VehicleId,
+                VehicleNumber = v.VehicleNumber,
+                Brand = v.Make,
+                Model = v.Model,
+                Year = v.Year,
+                Color = string.Empty
+            }).ToList(),
             Purchases = new()
         });
     }
@@ -179,11 +277,14 @@ public class CustomerService : ICustomerService
 
         var searchLower = searchTerm.ToLower();
         var customers = await _db.Users
+            .Include(u => u.Vehicles)
             .Where(u => u.Role == "customer"
                 && (u.FirstName.ToLower().Contains(searchLower) ||
                     u.LastName.ToLower().Contains(searchLower) ||
                     u.Email!.ToLower().Contains(searchLower) ||
-                    u.Phone.ToLower().Contains(searchLower)))
+                    u.Phone.ToLower().Contains(searchLower) ||
+                    u.UserId.ToString().Contains(searchLower) ||
+                    u.Vehicles.Any(v => v.VehicleNumber.ToLower().Contains(searchLower))))
             .ToListAsync();
 
         return customers.Select(u => new CustomerDto
@@ -194,21 +295,34 @@ public class CustomerService : ICustomerService
             Phone = u.Phone ?? string.Empty,
             Address = string.Empty,
             RegisteredDate = u.CreatedAt,
-            CreditBalance = 0,
-            Vehicles = new(),
+            CreditBalance = u.CreditBalance,
+            LoyaltyPoints = u.LoyaltyPoints,
+            Vehicles = u.Vehicles.Select(v => new VehicleDto
+            {
+                Id = v.VehicleId,
+                VehicleNumber = v.VehicleNumber,
+                Brand = v.Make,
+                Model = v.Model,
+                Year = v.Year,
+                Color = string.Empty
+            }).ToList(),
             Purchases = new()
         });
     }
 
     public async Task<CustomerDashboardDto> GetCustomerDashboardAsync(int customerId)
     {
-        var user = await _db.Users.FirstOrDefaultAsync(u => u.UserId == customerId);
+        var user = await _db.Users.FirstOrDefaultAsync(u => u.UserId == customerId && u.Role == "customer");
         if (user == null)
             throw new KeyNotFoundException("Customer not found");
 
         var vehicles = await _db.Vehicles.Where(v => v.UserId == customerId).ToListAsync();
         var appointments = await _db.Appointments.Where(a => a.CustomerId == customerId).ToListAsync();
-        var purchases = await _db.SalesInvoices.Where(s => s.CustomerId == customerId).ToListAsync();
+        var purchases = await _db.SalesInvoices
+            .Include(s => s.Items)
+            .ThenInclude(i => i.Part)
+            .Where(s => s.CustomerId == customerId)
+            .ToListAsync();
         var partRequests = await _db.PartRequests.Where(pr => pr.CustomerId == customerId).ToListAsync();
 
         var totalAppointments = appointments.Count;
@@ -257,7 +371,16 @@ public class CustomerService : ICustomerService
                     Id = p.SaleId,
                     PurchaseDate = p.SaleDate,
                     TotalAmount = (decimal)p.TotalAmount,
-                    IsPaid = p.PaymentStatus?.ToLower() == "paid"
+                    IsPaid = p.PaymentStatus?.ToLower() == "paid",
+                    InvoiceNumber = $"INV-{p.SaleId}",
+                    Items = p.Items.Select(i => new PurchaseItemDto
+                    {
+                        PartId = i.PartId,
+                        PartName = i.Part.PartName,
+                        Quantity = i.Quantity,
+                        UnitPrice = (decimal)i.UnitPrice,
+                        TotalPrice = (decimal)i.TotalPrice
+                    }).ToList()
                 }).ToList()
         };
     }

@@ -13,6 +13,8 @@ public interface ICustomerService
     Task<CustomerDto> CreateCustomerAsync(CreateCustomerDto dto);
     Task<IEnumerable<CustomerDto>> GetAllCustomersAsync();
     Task<IEnumerable<CustomerDto>> SearchCustomersAsync(string searchTerm);
+    Task<CustomerDto> GetCustomerDetailsAsync(int customerId);
+    Task<IEnumerable<PurchaseSummaryDto>> GetCustomerPurchaseHistoryAsync(int customerId);
     Task<CustomerDashboardDto> GetCustomerDashboardAsync(int customerId);
     Task<IEnumerable<Appointment>> GetServiceHistoryAsync(int customerId);
 }

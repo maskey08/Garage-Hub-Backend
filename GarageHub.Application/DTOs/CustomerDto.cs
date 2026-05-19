@@ -11,6 +11,7 @@ namespace GarageHub.Application.DTOs
         public decimal CreditBalance { get; set; }
         public List<VehicleDto> Vehicles { get; set; } = new();
         public List<PurchaseSummaryDto> Purchases { get; set; } = new();
+        public int LoyaltyPoints { get; set; }
     }
 
     public class CreateCustomerDto
@@ -21,6 +22,11 @@ namespace GarageHub.Application.DTOs
         public string Phone { get; set; } = string.Empty;
         public string Password { get; set; } = string.Empty;
         public string Address { get; set; } = string.Empty;
+        public string? VehicleNumber { get; set; }
+        public string? VehicleMake { get; set; }
+        public string? VehicleModel { get; set; }
+        public int? VehicleYear { get; set; }
+        public string? VehicleVin { get; set; }
     }
 
     public class VehicleDto
@@ -39,6 +45,17 @@ namespace GarageHub.Application.DTOs
         public DateTime PurchaseDate { get; set; }
         public decimal TotalAmount { get; set; }
         public bool IsPaid { get; set; }
+        public string InvoiceNumber { get; set; } = string.Empty;
+        public List<PurchaseItemDto> Items { get; set; } = new();
+    }
+
+    public class PurchaseItemDto
+    {
+        public int PartId { get; set; }
+        public string PartName { get; set; } = string.Empty;
+        public int Quantity { get; set; }
+        public decimal UnitPrice { get; set; }
+        public decimal TotalPrice { get; set; }
     }
 
     public class CustomerSearchRequest

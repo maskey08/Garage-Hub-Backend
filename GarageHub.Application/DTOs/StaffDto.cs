@@ -7,5 +7,6 @@ public class StaffDto
     public string Email { get; set; } = string.Empty;
     public string Phone { get; set; } = string.Empty;
     public string Role { get; set; } = "staff";
+    public string? SubRole { get; set; }
     public string Status { get; set; } = "active";
 }
