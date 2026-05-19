@@ -74,8 +74,8 @@ namespace GarageHub.Infrastructure.Services
                     discountAmount = subTotal * 0.10m;
                 }
 
-                decimal taxAmount = (subTotal - discountAmount) * 0.18m;
-                decimal grandTotal = subTotal - discountAmount + taxAmount;
+                decimal taxAmount = 0m;
+                decimal grandTotal = subTotal - discountAmount;
 
 
                 //Redeem loyalty logic

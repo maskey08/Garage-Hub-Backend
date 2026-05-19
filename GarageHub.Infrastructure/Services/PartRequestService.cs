@@ -29,4 +29,10 @@ public class PartRequestService : IPartRequestService
             .Where(p => p.CustomerId == customerId)
             .OrderByDescending(p => p.RequestedAt)
             .ToListAsync();
+
+    public async Task<IEnumerable<PartRequest>> GetAllAsync()
+        => await _db.PartRequests
+            .Include(p => p.Customer)
+            .OrderByDescending(p => p.RequestedAt)
+            .ToListAsync();
 }

@@ -10,4 +10,5 @@ public interface IPartRequestService
 {
     Task<PartRequest> SubmitAsync(int customerId, PartRequestCreateDto dto);
     Task<IEnumerable<PartRequest>> GetByCustomerAsync(int customerId);
+    Task<IEnumerable<PartRequest>> GetAllAsync();
 }

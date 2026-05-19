@@ -120,7 +120,7 @@ public class CustomerController : ControllerBase
     [HttpGet("purchase-history")]
     [Authorize(Roles = "customer")]
     public async Task<IActionResult> PurchaseHistory()
-        => Ok(await _customerService.GetPurchaseHistoryAsync(GetUserId()));
+        => Ok(await _customerService.GetCustomerPurchaseHistoryAsync(GetUserId()));
 
     [HttpGet("service-history")]
     [Authorize(Roles = "customer")]

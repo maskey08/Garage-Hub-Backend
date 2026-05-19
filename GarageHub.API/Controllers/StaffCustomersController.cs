@@ -145,6 +145,28 @@ public class StaffCustomersController : ControllerBase
         }
     }
 
+    [HttpGet("{id:int}/appointments")]
+    public async Task<IActionResult> GetCustomerAppointments(int id)
+    {
+        var appointments = await _db.Appointments
+            .Include(a => a.Vehicle)
+            .Where(a => a.CustomerId == id)
+            .OrderByDescending(a => a.ScheduledAt)
+            .Select(a => new
+            {
+                appointmentId = a.AppointmentId,
+                scheduledAt = a.ScheduledAt,
+                serviceType = a.ServiceType,
+                status = a.Status,
+                notes = a.Notes,
+                vehicleNumber = a.Vehicle != null ? a.Vehicle.VehicleNumber : null,
+                vehicleName = a.Vehicle != null ? (a.Vehicle.Make + " " + a.Vehicle.Model).Trim() : null
+            })
+            .ToListAsync();
+
+        return Ok(appointments);
+    }
+
     [HttpPut("{id:int}")]
     public async Task<IActionResult> UpdateCustomer(int id, [FromBody] UpdateCustomerRequestDto dto)
     {
@@ -170,6 +192,39 @@ public class StaffCustomersController : ControllerBase
         {
             return BadRequest(new { message = ex.Message });
         }
+    }
+
+    [HttpDelete("{id:int}")]
+    public async Task<IActionResult> DeleteCustomer(int id)
+    {
+        var customer = await _db.Users.FirstOrDefaultAsync(u => u.UserId == id && u.Role == "customer");
+        if (customer == null)
+            return NotFound(new { message = "Customer not found" });
+
+        var appointments = await _db.Appointments.Where(a => a.CustomerId == id).ToListAsync();
+        var appointmentIds = appointments.Select(a => a.AppointmentId).ToList();
+        var reviews = await _db.Reviews
+            .Where(r => r.CustomerId == id || appointmentIds.Contains(r.AppointmentId))
+            .ToListAsync();
+        var salesInvoices = await _db.SalesInvoices
+            .Include(invoice => invoice.Items)
+            .Where(invoice => invoice.CustomerId == id)
+            .ToListAsync();
+        var invoiceItems = salesInvoices.SelectMany(invoice => invoice.Items).ToList();
+        var vehicles = await _db.Vehicles.Where(v => v.UserId == id).ToListAsync();
+        var partRequests = await _db.PartRequests.Where(request => request.CustomerId == id).ToListAsync();
+        var notifications = await _db.Notifications.Where(notification => notification.UserId == id).ToListAsync();
+
+        _db.Reviews.RemoveRange(reviews);
+        _db.Appointments.RemoveRange(appointments);
+        _db.SalesInvoiceItems.RemoveRange(invoiceItems);
+        _db.SalesInvoices.RemoveRange(salesInvoices);
+        _db.Vehicles.RemoveRange(vehicles);
+        _db.PartRequests.RemoveRange(partRequests);
+        _db.Notifications.RemoveRange(notifications);
+        _db.Users.Remove(customer);
+        await _db.SaveChangesAsync();
+        return NoContent();
     }
 
     [HttpPost("{id:int}/vehicles")]

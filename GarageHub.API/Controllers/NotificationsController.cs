@@ -26,17 +26,10 @@ public class NotificationsController : ControllerBase
     [HttpGet]
     public async Task<IActionResult> GetNotifications()
     {
-        await EnsureLiveAlertsAsync();
+        var query = _db.Notifications.Where(n => n.UserId == UserId);
 
-        var query = _db.Notifications.AsQueryable();
-        if (Role != "admin" && Role != "staff")
-        {
-            query = query.Where(n => n.UserId == UserId);
-        }
-
-        var notifications = await query
+        var rawNotifications = await query
             .OrderByDescending(n => n.CreatedAt)
-            .Take(25)
             .Select(n => new
             {
                 id = n.NotificationId,
@@ -47,6 +40,13 @@ public class NotificationsController : ControllerBase
                 createdAt = n.CreatedAt
             })
             .ToListAsync();
+
+        var notifications = rawNotifications
+            .GroupBy(n => new { n.title, n.message, n.type })
+            .Select(group => group.First())
+            .OrderByDescending(n => n.createdAt)
+            .Take(25)
+            .ToList();
 
         return Ok(notifications);
     }
@@ -63,54 +63,4 @@ public class NotificationsController : ControllerBase
         return Ok();
     }
 
-    private async Task EnsureLiveAlertsAsync()
-    {
-        var recipientIds = await _db.Users
-            .Where(u => u.Role == "admin" || u.Role == "staff")
-            .Select(u => u.UserId)
-            .ToListAsync();
-
-        var lowStockCount = await _db.Parts.CountAsync(p => p.StockQuantity <= 10);
-        if (lowStockCount > 0)
-        {
-            foreach (var userId in recipientIds)
-            {
-                await AddIfMissingAsync(userId, "Low stock alert", $"{lowStockCount} part(s) are at or below reorder stock.", NotificationType.LowStock);
-            }
-        }
-
-        var cutoff = DateOnly.FromDateTime(DateTime.UtcNow.AddDays(-7));
-        var overdueCreditCount = await _db.Users.CountAsync(u =>
-            u.Role == "customer" &&
-            u.CreditBalance > 10000 &&
-            (u.CreditDueDate == null || u.CreditDueDate <= cutoff));
-
-        if (overdueCreditCount > 0)
-        {
-            foreach (var userId in recipientIds)
-            {
-                await AddIfMissingAsync(userId, "Credit reminder", $"{overdueCreditCount} customer(s) have credit above 10k for over a week.", NotificationType.GeneralAlert);
-            }
-        }
-    }
-
-    private async Task AddIfMissingAsync(int userId, string title, string message, NotificationType type)
-    {
-        var since = DateTime.UtcNow.AddHours(-12);
-        var exists = await _db.Notifications.AnyAsync(n =>
-            n.UserId == userId && n.Title == title && n.Type == type && n.CreatedAt >= since);
-
-        if (exists)
-            return;
-
-        _db.Notifications.Add(new Notification
-        {
-            UserId = userId,
-            Title = title,
-            Message = message,
-            Type = type,
-            CreatedAt = DateTime.UtcNow
-        });
-        await _db.SaveChangesAsync();
-    }
 }
