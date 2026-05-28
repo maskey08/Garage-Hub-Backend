@@ -134,7 +134,7 @@ public class StaffController : ControllerBase
     }
 
     /// <summary>
-    /// Delete staff member (admin only)
+    /// Delete staff member (admin only)    
     /// </summary>
     [HttpDelete("{id}")]
     [Authorize(Roles = "admin")]
